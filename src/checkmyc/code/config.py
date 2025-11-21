@@ -228,7 +228,6 @@ def get_paths(config: dict, config_flag: bool, args: Namespace) -> dict:
     if config_flag:
         paths.update(
             {
-                "schema": r(Path(base.get("schema_path")) / args.schema),
                 "programs": r(Path(base.get("programs_path")) / args.program),
                 "exam_text": r(Path(base.get("exam_text_path")) / (args.exam or "")),
                 "sys_prompt": r(Path(base.get("sys_prompt_path")) / args.system_prompt),
@@ -242,7 +241,6 @@ def get_paths(config: dict, config_flag: bool, args: Namespace) -> dict:
         # sensible defaults when not using config paths (all must be specified in the cli)
         paths.update(
             {
-                "schema": args.schema,
                 "programs": args.program,
                 "exam_text": args.exam or "",
                 "sys_prompt": args.system_prompt,

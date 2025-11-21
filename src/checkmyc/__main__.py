@@ -73,10 +73,10 @@ def init_argparser() -> argparse.ArgumentParser:
         help="Activate debug prints",
     )
     parser.add_argument(
-        "--user_prompt", "-up", type=str, default="up4.md", help="User prompts file"
+        "--user_prompt", "-up", type=str, default="up5.md", help="User prompts file"
     )
     parser.add_argument(
-        "--system_prompt", "-sp", type=str, default="sp6.md", help="System prompts file"
+        "--system_prompt", "-sp", type=str, default="sp7.md", help="System prompts file"
     )
     parser.add_argument(
         "--provider", "-pr", type=str, help="Provider (openai/gemini/openrouter)"

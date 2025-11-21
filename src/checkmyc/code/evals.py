@@ -51,7 +51,7 @@ def time_test(p_input) -> float:
         logging.error(f"Executable {exec_name} not found")
         return -1
 
-    if not p_input.exists():
+    if not Path(p_input).exists():
         logging.error(f"Input file {p_input} not found")
         return -1
 
