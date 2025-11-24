@@ -34,9 +34,7 @@ For each topic, produce **at least one evidence** with:
 ### Comment  
 - short, factual, impersonal, technical  
 - describe observable code only  
-- no intentions, no subjective wording  
-- allowed verbs only:  
-  **is, uses, handles, misses, causes, allocates, frees, returns**
+- no intentions, no subjective wording
 
 ### Lines  
 - exact line or contiguous range: `"N"` or `"N-M"`  
@@ -58,7 +56,7 @@ For each topic, produce **at least one evidence** with:
 ```
 
 ### Additional rules  
-- identical issues at different lines → separate evidences with identical comments  
+- identical issues at different lines -> same evidences with different lines  
 - no synonyms for labels  
 - no probabilistic phrasing  
 

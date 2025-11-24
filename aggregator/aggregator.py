@@ -15,9 +15,9 @@ from src.checkmyc.code.config import render_prompts
 
 # === Basic paths consistent with the repo ===
 timestamp = datetime.now().strftime("%H-%M-%S")
-PROJECT_ROOT = Path(__file__).resolve().parents[3]  # repo root
-PKG_ROOT = Path(__file__).resolve().parents[1]  # src/checkmyc
-DATA_DIR = PKG_ROOT / "data"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]  # repo root
+CMC_ROOT = PROJECT_ROOT / "src" / "checkmyc"  # src/checkmyc
+CURR_DIR = Path(__file__).resolve().parents[0]  # src/checkmyc / "data"
 OUTPUT_DIR = PROJECT_ROOT / "output" / "aggregation"
 INPUT_DIR = PROJECT_ROOT / "output" / "comments_extraction" / "gpt-4_1-mini"
 
@@ -185,7 +185,7 @@ def generate_schema(topics: list[str]) -> dict:
 
 def reconstruct_json(parsed, preprocessed):
     """
-    Rebuild final JSON substituiting IDs with original comments
+    Rebuild final JSON substituting IDs with original comments
     """
 
     final_json = {"topics": []}
@@ -200,6 +200,7 @@ def reconstruct_json(parsed, preprocessed):
 
         topic_entry = {"name": topic_name, "comments": []}
         for comment_entry in comments_list:
+            representative_comm = comment_entry.get("comment", "")
             cluster_ids = comment_entry.get("list", [])
             cluster_texts = [
                 {"id": cid, "text": id_to_text[cid]}
@@ -207,7 +208,7 @@ def reconstruct_json(parsed, preprocessed):
                 if cid in id_to_text
             ]
             topic_entry["comments"].append(
-                {"comment": comment_entry.get("comment", []), "list": cluster_texts}
+                {"comment": representative_comm, "list": cluster_texts}
             )
 
         final_json["topics"].append(topic_entry)
@@ -226,7 +227,7 @@ def main():
     print("\nProcessing complete.")
 
     # LLM configuration info
-    with open(PKG_ROOT / "config" / "llm.toml", "rb") as f:
+    with open(CMC_ROOT / "config" / "llm.toml", "rb") as f:
         llm_config = tomllib.load(f)
     pricing = llm_config.get("models", {})
 
@@ -239,18 +240,17 @@ def main():
         # PROMPT CONSTRUCTION
         templ_context = {"comments": {f"{topic}": comments[topic]}}
         system_prompt, user_prompt = render_prompts(
-            DATA_DIR / "prompts" / "system" / input_args.system_prompt,
-            DATA_DIR / "prompts" / "user" / input_args.user_prompt,
+            CURR_DIR / input_args.system_prompt,
+            CURR_DIR / input_args.user_prompt,
             templ_context,
         )
 
         # OUTPUT JSON SCHEMA
-        # schema = load_file(DATA_DIR / "json_schema" / input_args.schema)
         schema = generate_schema([topic])
 
         # API CALL
         parsed, usage = run_openai(
-            system_prompt, user_prompt, schema, input_args.model, 0.3, "openai"
+            system_prompt, user_prompt, schema, input_args.model, 0.3, False
         )
 
         tokens = normalize_usage_dispatch("openai", usage)
@@ -275,7 +275,7 @@ def main():
     # HTML
     output_html = output_json.with_suffix(".html")
     env = Environment(
-        loader=FileSystemLoader(DATA_DIR / "templates"),
+        loader=FileSystemLoader(CURR_DIR / "templates"),
         autoescape=select_autoescape(["html", "xml"]),
     )
     template = env.get_template(input_args.html_template)

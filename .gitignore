@@ -17,6 +17,7 @@
 /rendered_prompts
 /naming.py
 /extractor
+/errors
 !/src/checkmyc/data/templates/extract_template.html
 
 src/checkmyc/data/json_schema

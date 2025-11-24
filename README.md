@@ -19,7 +19,6 @@ project_root/
 │       ├── __main__.py                # Main entry point
 │       ├── code/                      # Contains evaluation logic and utilities
 │       │   ├── evals.py               # Compilation, timing, and pvcheck logic
-│       │   ├── aggregator.py          # Aggregator tool
 │       │   └── config.py              # Program setup functions
 |       |
 │       ├── api/                       # Contains API logic and utilities
@@ -216,31 +215,6 @@ uv run checkmyc prova.c gpt-4.1-mini -cf -i 20220728/Esempio_nel_testo.dat -up u
 ```
 This command evaluates `prova.c` without any context and reference solution, using GPT-4.1-mini, `Esempio_nel_testo.dat` as input for `prova.c`, and specified prompt files. All files refer to pre-configured paths.
 In this case specifying `-i` is necessary to have a correct performance test, since `prova.c` needs an input file to execute correctly.
-
----
-
-## Aggregator tool
-
-Using the command
-```
-uv run python -m checkmyc.code.aggregator
-```
-it is possible to extract and aggregate negative comments for each evaluation topic from a dataset of evaluations.
-
-### Features
-
-- **Extracts negative evaluation comments** from multiple JSON outputs and assigns unique IDs.  
-- **Aggregates comments by evaluation topic** to reveal recurring weak points or misunderstandings.  
-- **Clusters similar negative comments** using an LLM with a schema-guided prompt.  
-- **Reconstructs final clustered output** by restoring original comment texts.  
-- **Produces structured JSON and HTML summaries** for downstream analysis.
-
-### Functionality
-
-- Produces, for each evaluation topic, a mapped set of recurring issues and error patterns identified in the model’s negative comments.
-- Highlights systematic misunderstandings or weak points in how the model applies the evaluation rules.
-- Provides structured data that can be used to refine and rewrite evaluation prompts, making criteria clearer and reducing ambiguity.
-- Enables iterative improvement of evaluation guidelines by revealing where the model consistently fails to follow the intended instructions.
 
 ---
 

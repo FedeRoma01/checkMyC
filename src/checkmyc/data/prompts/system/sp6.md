@@ -2,8 +2,7 @@
 
 ## LANGUAGE CONTROL (HARD CONSTRAINT)
 
-All outputs (including comments, reasoning, and field values) **must be written strictly in English**.  
-If any non-English text appears (e.g., Italian), the output is invalid and must be **regenerated entirely in English**.  
+All outputs (including comments, reasoning, and field values) **must be written strictly in English**.
 Translate internal reasoning before emitting output.  
 Violation of this rule is a **critical format error**.
 
@@ -107,8 +106,7 @@ For each topic:
 - Identical issues appearing multiple times in different lines → produce **separate comments** for each distinct range.  
 - Do not use synonyms or free-form phrasing for “criticality” or “goodness”.  
 - If two identical code patterns appear, reuse the same comment text for consistency.  
-- Avoid probabilistic or interpretive wording (“seems”, “probably”, “appears”).  
-- Use only verbs: “is”, “uses”, “handles”, “misses”, “causes”, “allocates”, “frees”, “returns”.
+- Avoid probabilistic or interpretive wording (“seems”, “probably”, “appears”).
 
 ---
 
