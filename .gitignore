@@ -17,6 +17,7 @@
 /rendered_prompts
 /naming.py
 /extractor
+/aggregator
 /errors
 !/src/checkmyc/data/templates/extract_template.html
 
@@ -24,6 +25,8 @@ src/checkmyc/data/json_schema
 src/checkmyc/data/templates/extract_template.html
 src/checkmyc/data/prompts/system/sys_comm_extr.md
 src/checkmyc/data/prompts/user/usr_comm_extr.md
+src/checkmyc/data/prompts/user/up*
+src/checkmyc/data/prompts/system/sp*
 #src/checkmyc/data/json_schema/comments_schema.json
 #src/checkmyc/code/aggregator.py
 

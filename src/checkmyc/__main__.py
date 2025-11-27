@@ -73,10 +73,18 @@ def init_argparser() -> argparse.ArgumentParser:
         help="Activate debug prints",
     )
     parser.add_argument(
-        "--user_prompt", "-up", type=str, default="up5.md", help="User prompts file"
+        "--user_prompt",
+        "-up",
+        type=str,
+        default="no_context.md",
+        help="User prompts file",
     )
     parser.add_argument(
-        "--system_prompt", "-sp", type=str, default="sp7.md", help="System prompts file"
+        "--system_prompt",
+        "-sp",
+        type=str,
+        default="no_context.md",
+        help="System prompts file",
     )
     parser.add_argument(
         "--provider", "-pr", type=str, help="Provider (openai/gemini/openrouter)"
@@ -99,6 +107,12 @@ def init_argparser() -> argparse.ArgumentParser:
         "--temperature", "-t", type=float, default=0.3, help="Model temperature"
     )
     parser.add_argument("--output", "-o", type=str, help="Output directory for results")
+    parser.add_argument(
+        "--output_directory",
+        "-od",
+        type=str,
+        help="Output directory inside the model dir",
+    )
     return parser
 
 
@@ -258,7 +272,11 @@ def main():
 
         # SAVE OUTPUT path
         timestamp = datetime.now().strftime("%H-%M-%S")
-        output_dir = Path(paths.get("output")) / make_safe_dirname(input_args.model)
+        output_dir = (
+            Path(paths.get("output"))
+            / make_safe_dirname(input_args.model)
+            / (input_args.output_directory or "")
+        )
         output_dir.mkdir(parents=True, exist_ok=True)
         output_name = (
             f"{timestamp}_{program_name}_{system_prompt_name}_{user_prompt_name}.json"

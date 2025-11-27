@@ -1,12 +1,18 @@
-### Error handling
-Verify that the program includes and correctly implements validation for:
-  - malloc/realloc return values
-  - fopen file opening results
-  - sscanf return value
-  - argc argument count
-Identify missing checks, incorrect conditions, or unhandled error paths.
+### Error detection and handling
 
-In the reference program, the following aspects are present. **These ones must be considered correct and must not be considered errors with `goodness`: `-`**.
+**Objective:**  
+Evaluate the correctness and completeness of runtime error checks and the program’s ability to handle invalid conditions deterministically.
+
+**Evaluation Criteria:**  
+- Verify validation of command-line arguments.
+- Verify file opening checks.
+- Verify dynamic allocation checks.
+- Verify sscanf return-value.
+- Verify controlled handling and termination on failures.
+- Detect missing checks for critical operations.
+
+**Reference-Solution Valid Elements:**  
+In the reference program, the following aspects are present and **must be always considered correct and must not be considered errors with `goodness`: `-`**:
 
 - Command-line arguments are validated (`if (argc != 2)`).
 - File opening is checked and reported explicitly if it fails (`if ((f = fopen(...)) == NULL)`).
@@ -15,10 +21,9 @@ In the reference program, the following aspects are present. **These ones must b
 - The program always terminates in a controlled manner (`return 1` on failure).
 - The final realloc failure in `leggi_file` is only warned about but not treated as an error.
 - All relevant runtime errors (invalid file, bad input, failed allocation) are detected and handled locally.
-- Errors that are not propagated outward have no impact on execution correctness since invalid states are never reached.
 
 **To achieve 10/10:**
-The program must handle all foreseeable error cases — invalid parameters, missing files, allocation failures, malformed input — without abnormal termination. Every error must produce a clear, informative message, while preserving internal data consistency and ensuring controlled program exit.
+The program must handle all foreseeable error cases — invalid parameters, missing files, allocation failures, malformed input — without abnormal termination. Every error must be correctly handled preserving internal data consistency and ensuring controlled program exit.
 
 
 

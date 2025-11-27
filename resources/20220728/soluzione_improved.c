@@ -46,6 +46,10 @@ int leggi_file(FILE *f, struct file *dati)
                 linea->numeri + 7,
                 linea->numeri + 8,
                 linea->numeri + 9);
+
+        // indice della riga successiva
+        dati->n += 1;
+
         if (numbers == 10) {
             // calcolo la somma dei valori nella riga
             s = 0;
@@ -53,9 +57,6 @@ int leggi_file(FILE *f, struct file *dati)
                 s += linea->numeri[i];
             }
             linea->somma = s;
-
-            // indice della riga successiva
-            dati->n += 1;
 
             // ridimensionamento del vettore di righe
             if (dati->n >= dimc) {

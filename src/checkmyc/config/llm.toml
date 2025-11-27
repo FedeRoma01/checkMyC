@@ -49,6 +49,11 @@ name = "Error handling"
 weight = 1.0
 description = "errors.md"
 
+[[topics]]
+name = "Code generality"
+weight = 1.0
+description = "code_gen.md"
+
 # SUMMARY ANALYSIS
 [[analysis]]
 name = "priority issues"

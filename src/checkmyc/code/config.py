@@ -114,7 +114,8 @@ def build_prompt_context(topics, analysis):
             parts.append(load_file(desc_path))
         else:
             parts.append(topic.get("description", ""))
-    parts.extend(f"### {a['name']}\n{a['description']}" for a in analysis)
+    for a in analysis:
+        parts.append(f"### {a['name']}\n{a['description']}")
     return "\n".join(parts)
 
 
@@ -275,7 +276,7 @@ def programs_loading(paths, extension):
         program_paths = [
             p / prog
             for prog in p.iterdir()
-            if (prog.is_file() and prog.endswith(extension))
+            if (prog.is_file() and prog.suffix == extension)
         ]
         if not program_paths:
             raise FileNotFoundError(

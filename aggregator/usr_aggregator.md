@@ -1,5 +1,0 @@
-# User prompt
-
-**Input:**
-
-{{ comments }}

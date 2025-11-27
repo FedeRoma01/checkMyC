@@ -1,10 +1,6 @@
-## Evaluation Criteria
+## Evaluation Topics
 
 {{ topics }}
-
-## Context Prompt
-
-{{ context | e }}
 
 ## Reference Program
 
