@@ -5,6 +5,7 @@ import platform
 import shutil
 import subprocess
 import time
+from collections import Counter
 from pathlib import Path
 
 
@@ -118,9 +119,35 @@ def pvcheck_test(
         return 0
 
 
+def generate_topic_score(
+    topic_evals, comments_weights, start_score=10, min_score=0, max_score=11
+):
+    """Computes the grade based on the frequency of evidence."""
+    mapping = {"+": "plus", "-": "minus"}
+
+    for topic in topic_evals:
+        counts = Counter(
+            (ev["goodness"], ev["criticality"]) for ev in topic["evidences"]
+        )
+        adjustment = 0
+
+        for (good, crit), freq in counts.items():
+            if good == "=" or crit == "neutral":
+                continue
+            good_key = mapping.get(good)
+            weight = comments_weights[crit][good_key]
+            adjustment += weight * freq
+
+        weighted_score = start_score + adjustment
+        topic["weighted_score"] = max(
+            min_score, min(max_score, round(weighted_score, 2))
+        )
+
+
 def compute_final_score(
     objective_metrics: dict,
     llm_metrics: dict,
+    comments_weights: dict,
     tests_weights: dict,
     llm_weights: dict,
     combined_weights: dict,

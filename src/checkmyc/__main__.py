@@ -24,6 +24,7 @@ from .code.evals import (
     add_line_numbers,
     compilation_test,
     compute_final_score,
+    generate_topic_score,
     pvcheck_test,
     time_test,
 )
@@ -160,6 +161,7 @@ def main():
 
     paths = get_paths(general_config, path_flag, input_args)
     combined_weights = general_config.get("combined_weights", {})
+    comments_weights = general_config.get("weights", {})
 
     # LLM CONFIG LOAD
     llm_config_path = paths.get("llm_config")
@@ -295,10 +297,14 @@ def main():
 
         call_cost = compute_cost(model, tokens, pricing)
 
+        # DETERMINISTIC SCORE GENERATION FROM EVIDENCES
+        generate_topic_score(parsed["evaluations"], comments_weights)
+
         # FINAL SCORE
         combined = compute_final_score(
             metrics,
             parsed,
+            comments_weights,
             tests_weights,
             llm_weights,
             combined_weights,

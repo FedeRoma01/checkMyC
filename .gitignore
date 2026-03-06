@@ -2,6 +2,7 @@
 #  Project-specific exclusions
 # -----------------------------
 /resources/sources/*
+/resources/*.txt
 !/resources/sources/prova.c
 !/resources/sources/errors.c
 !/resources/sources/data_struct.c

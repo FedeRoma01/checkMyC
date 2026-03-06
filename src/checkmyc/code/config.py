@@ -26,16 +26,6 @@ def generate_schema(topics: list[str]) -> dict:
                     "additionalProperties": False,
                     "properties": {
                         "name": {"type": "string", "enum": topics},
-                        "score": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 10,
-                            "description": (
-                                "Integer number between 0 and 10. "
-                                "It evaluates the topic satisfaction based exclusively "
-                                "on the specifications provided by the user."
-                            ),
-                        },
                         "evidences": {
                             "type": "array",
                             "items": {
@@ -53,9 +43,12 @@ def generate_schema(topics: list[str]) -> dict:
                                     },
                                     "criticality": {
                                         "type": "string",
-                                        "enum": ["high", "medium", "low"],
+                                        "enum": ["high", "medium", "low", "neutral"],
                                     },
-                                    "goodness": {"type": "string", "enum": ["+", "-"]},
+                                    "goodness": {
+                                        "type": "string",
+                                        "enum": ["+", "-", "="],
+                                    },
                                 },
                                 "required": [
                                     "comment",
@@ -65,8 +58,18 @@ def generate_schema(topics: list[str]) -> dict:
                                 ],
                             },
                         },
+                        "score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 10,
+                            "description": (
+                                "Integer number between 0 and 10. "
+                                "It evaluates the topic satisfaction based exclusively "
+                                "on the specifications provided by the user."
+                            ),
+                        },
                     },
-                    "required": ["name", "score", "evidences"],
+                    "required": ["name", "evidences", "score"],
                 },
                 "description": f"Must contain exactly {n} items, one per topic.",
             },
