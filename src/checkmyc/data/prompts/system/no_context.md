@@ -17,18 +17,17 @@ The evaluation is deterministic and rule-based.
 
 ---
 
-## TASK
-You must evaluate the input program with respect to the provided evaluation topics.
-You must identify incorrect logic, incorrect algorithms, missing cases, or semantic mismatches.  
-Use the provided reference program as the optimal implementation of the evaluated topics.
+## INPUT  
+You receive:
+- evaluation topics with evaluation criteria  
+- reference program  
+- evaluated program with fixed line numbers (do NOT create or modify them).  
 
 ---
 
-## INPUT  
-You receive:
-- evaluation topics with scoring rules  
-- reference program  
-- complete student code with fixed line numbers (do NOT create or modify them).  
+## TASK
+You must evaluate the evaluated program exclusively with respect to the provided evaluation topics. 
+Use the provided reference program as a functional gold standard for the evaluation topics. However, alternative implementation patterns that achieve the same result with equivalent efficiency and safety should be evaluated based on their intrinsic merit, not their literal divergence from the reference.
 
 ---
 
@@ -38,27 +37,43 @@ You receive:
 For each topic, produce **at least one evidence** with:
 
 #### Comment  
-- short, factual, impersonal, technical
+- short, factual, impersonal, technical.
+- must be specific to the evaluated program.
+- each topic reports several conditions that need to be evaluated in the evaluated program.
+- if the same condition is satisfied in one part of the code and not satisfied in another part, generate two different comments being specific to the analyzed part.
+- conditions are numbered in the prompt.
+- when you report a comment that is related to a given condition, also indicate the corresponding number; do not report goodness and criticality in the comment.      
+**Example**:   
+condition:  
+`3. description of the condition`  
+generated content:      
+`3. text of the comment`
+- when you report a comment that is not related to a given condition indicate it with the flag `new`.  
+**Example**:    
+generated content:      
+`new. text of the comment`
 
 #### Lines 
 - each comment must include the exact affected line(s).
-- exact line or contiguous range: `"N"` or `"N-M"`  
+- exact line or contiguous range: `"N"` or `"N-M"`
+**Example**:   
+comment-affected lines:  
+`3, 4, 5, 6, 7`  
+generated lines:      
+`3-7`  
 - no approximations
 
 #### Goodness  
 - `"+"` correct or desirable  
 - `"-"` incorrect or suboptimal
+- `"="` neutral
 
-#### Criticality (deterministic)  
-```
-+  low    = correct but suboptimal  
-+  medium = correct but not general/robust  
-+  high   = fully correct and optimal  
-
--  low    = minor issue without functional impact  
--  medium = functional issue, not fatal  
--  high   = major error breaking logic/functionality
-```
+#### Criticality (deterministic)
+Basing on the evaluation condition the comment is related to, assign:
+- `"low"`
+- `"medium"`
+- `"high"`
+- `"neutral"`
 
 #### Additional rules  
 - identical issues at different lines must be in the same evidence with all the lines presenting those issues  
@@ -70,9 +85,9 @@ For each topic, produce **at least one evidence** with:
 ### STEP 2 - Score (negative evidences only)
 The assigned score must take into account exclusively comments with `"goodness": "-"` and must respect the following deterministic rules:
 ```
-if no negative: score = 8-10
-elif only low negatives: score = 6-7
-elif medium negatives exist and no high: score in 3-5
+if no negative: score = 10
+elif only low negatives: score = 7-9
+elif medium negatives exist and no high: score in 4-6
 else (≥1 high): score in 0–3
 ```
 Positive evidences never reduce the score.

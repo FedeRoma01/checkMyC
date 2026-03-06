@@ -8,7 +8,7 @@
 {{ solution }}
 ```
 
-## Student Program
+## Evaluated Program
 
 ```c
 {{ program }}

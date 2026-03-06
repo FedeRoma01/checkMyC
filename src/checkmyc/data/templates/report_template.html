@@ -121,6 +121,30 @@
             color: #e8e8e8;
             text-decoration: underline;
         }
+
+        .status-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 0.9em;
+            color: #ffffff;
+            margin-right: 5px;
+        }
+
+        .sign-minus { background-color: #ff4d4d; } /* Rosso */
+        .sign-equal { background-color: #808080; } /* Grigio */
+        .sign-plus  { background-color: #2ecc71; } /* Verde */
+
+        /* Per allineare il testo nella cella */
+        .cell-center {
+            text-align: center;
+            vertical-align: middle;
+        }
+
     </style>
 </head>
 
@@ -133,55 +157,53 @@
 <p><strong>Provider:</strong> {{ data.model.provider }}</p>
 <p><strong>Final Score:</strong> {{ data.final_score }}</p>
 <p><strong>Call cost:</strong> ${{ data.call_cost }}</p>
-<p><strong>Evaluated program:</strong> <a href="{{ data.program.name }}">{{ data.program.name }}</a></p>
+<p><strong>Evaluated program:</strong> <a href="{{ data.program.path }}">{{ data.program.name }}</a></p>
 
 <hr>
 
 <h2>LLM Results</h2>
 
 <table class="full">
-    <tr>
-        <th>Name</th>
-        <th>Score</th>
-        <th>Comments</th>
-        <th>Goodness</th>
-        <th>Criticality</th>
-        <th>Lines</th>
-    </tr>
-    {% for ev in data.LLM.evaluations %}
-    <tr>
-        <td>{{ ev.name }}</td>
-        <td>{{ ev.score }}</td>
-        <td class="inner">
-            <table>
-                {% for comm in ev.evidences %}
-                <tr><td>{{ comm.comment }}</td></tr>
-                {% endfor %}
-            </table>
-        </td>
-        <td class="inner">
-            <table>
-                {% for sign in ev.evidences %}
-                <tr><td>{{ sign.goodness }}</td></tr>
-                {% endfor %}
-            </table>
-        </td>
-        <td class="inner">
-            <table>
-                {% for crit in ev.evidences %}
-                <tr><td>{{ crit.criticality }}</td></tr>
-                {% endfor %}
-            </table>
-        </td>
-        <td class="inner">
-            <table>
-                {% for l in ev.evidences %}
-                <tr><td>{{ l.lines }}</td></tr>
-                {% endfor %}
-            </table>
-        </td>
-    </tr>
-    {% endfor %}
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>LLM Score</th>
+            <th>Weighted Score</th>
+            <th>Comments</th>
+            <th>Goodness</th>
+            <th>Criticality</th>
+            <th>Lines</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ev in data.LLM.evaluations %}
+            {% set num_evidences = ev.evidences|length %}
+            {% for evidence in ev.evidences %}
+            <tr>
+                {% if loop.first %}
+                <td rowspan="{{ num_evidences }}">{{ ev.name }}</td>
+                <td rowspan="{{ num_evidences }}">{{ ev.score }}</td>
+                <td rowspan="{{ num_evidences }}">{{ ev.weighted_score }}</td>
+                {% endif %}
+
+                <td>{{ evidence.comment }}</td>
+                <td class="cell-center">
+                    {% if evidence.goodness == "-" %}
+                        <span class="status-circle sign-minus">-</span>
+                    {% elif evidence.goodness == "=" %}
+                        <span class="status-circle sign-equal">=</span>
+                    {% elif evidence.goodness == "+" %}
+                        <span class="status-circle sign-plus">+</span>
+                    {% else %}
+                        {{ evidence.goodness }}
+                    {% endif %}
+                </td>
+                <td class="cell-center">{{ evidence.criticality }}</td>
+                <td>{{ evidence.lines }}</td>
+            </tr>
+            {% endfor %}
+        {% endfor %}
+    </tbody>
 </table>
 
 <hr>

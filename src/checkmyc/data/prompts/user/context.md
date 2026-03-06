@@ -2,7 +2,7 @@
 
 {{ topics }}
 
-## Context Prompt
+## Context
 
 {{ context | e }}
 
@@ -12,7 +12,7 @@
 {{ solution }}
 ```
 
-## Student Program
+## Evaluated Program
 
 ```c
 {{ program }}

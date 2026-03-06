@@ -1,26 +1,30 @@
 ### Error handling
 
+**Context**:
+The program processes a text file composed of lines following a strictly structured pattern, where each element occupies a defined position.
+
 **Objective:**  
-Evaluate the correctness and completeness of runtime error checks and the program’s ability to handle invalid conditions deterministically, verifying not only whether checks exist but whether they are placed and used correctly.
+Evaluate the correctness and completeness of runtime error checks and the program’s ability to handle invalid conditions deterministically, verifying not only whether checks exist but whether they are placed and used correctly. Errors handling must ensure the program flow to actually stop or react to the errors.
 
-**Evaluation Criteria:**  
-- Verify validation of command-line arguments.
-- Verify file opening checks.
-- Verify dynamic allocation checks.
-- Verify sscanf return-value is validated properly before processed fields are used.
-- Verify controlled handling and termination on failures, ensuring the flow actually stops or reacts to the error.
-- Detect missing, misplaced, unreachable, or ineffective checks for critical operations.
-
-**Reference-Solution Valid Elements:**  
-In the reference program, the following aspects are present and **must be always considered correct and must not be considered errors with `goodness`: `-`**:
-
-- Command-line arguments are validated (`if (argc != 2)`).
-- File opening is checked and reported explicitly if it fails (`if ((f = fopen(...)) == NULL)`).
-- Dynamic memory allocations are verified (`if (tmp == NULL)` and `if (dati->linee == NULL)`).
-- Malformed lines are skipped but reported with debug messages (`# Linea ... not considered`).
-- The program always terminates in a controlled manner (`return 1` on failure).
-- The final realloc failure in `leggi_file` is only warned about but not treated as an error.
-- All relevant runtime errors (invalid file, bad input, failed allocation) are detected and handled locally.
-
-**To achieve 10/10:**
-Error checks must be placed before the value is used and must trigger safe, controlled behavior. Every invalid condition must be caught early, handled deterministically, and must not allow inconsistent or unsafe program states.
+**Evaluated Conditions:**
+1. All relevant runtime errors are detected and handled locally (goodness: +, criticality: high).
+2. All error handlings let the program always terminates in a controlled manner (goodness: +, criticality: high).
+3. There are unreachable error checks (goodness: -, criticality: low).
+4. There are ineffective error checks (goodness: -, criticality: high). [*?]
+5. Error handling contains explanatory prints (goodness: +, criticality: low). [*?]
+6. The reading file function returns NULL pointer to the caller due to not checking and handling allocation failures (goodness: -, criticality: low).
+7. The number of command-line arguments is not checked (goodness: -, criticality: medium).
+8. Command-line arguments number is checked and handled by terminating the program (goodness: +, criticality: medium).
+9. File opening failure is not checked (goodness: -, criticality: medium).
+10. File opening failure is checked and handled by terminating the program (goodness: +, criticality: medium).
+11. Empty file case is not handled or it is not handled (goodness: =, criticality: neutral).
+12. Empty file case is handled (goodness: =, criticality: neutral).
+13. Dynamic memory allocations are checked for failure and correctly handled by terminating the program (goodness: +, criticality: high).
+14. Dynamic memory allocations are not checked for failure, risking unsafe use (goodness: -, criticality: medium).
+15. Dynamic memory reallocations are not checked for failure, risking to invalidate the used pointer (goodness: -, criticality: medium).
+16. Dynamic memory reallocation failure inside the reading file loop is checked and handled by exiting the loop; the program continues with data dynamically allocated until that point (goodness: +, criticality: medium).
+17. Dynamic memory reallocation failure at the end of the reading file loop is checked but not handled by terminating the program (goodness: +, criticality: low).
+18. sscanf return-value is not checked (goodness: -, criticality: low).
+19. sscanf return-value is checked and handled (goodness: +, criticality: low). (definire invalid rows?)
+20. Malformed lines of the reading file are skipped but reported with debug messages (goodness: =, criticality: neutral).
+21. The error is suitably checked but no effective measure is taken to deal with the error condition (e.g. the program continues even in case of error condition being true) (goodness: -, criticality: medium).
