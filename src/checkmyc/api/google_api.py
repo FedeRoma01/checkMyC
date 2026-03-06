@@ -1,11 +1,12 @@
 import json
 
 from google import genai
-from google.genai import types
+from google.genai import errors, types
 
 from ..api.utils_api import (
-    APIError,
+    FatalAPIError,
     InvalidResponseError,
+    TransientAPIError,
     check_api_key,
     json_to_gemini_schema,
 )
@@ -21,9 +22,9 @@ def normalize_usage_gemini(usage: dict) -> dict:
 
 
 def run_gemini(sys_prompt, usr_prompt, schema, model, temperature, debug):
-    """Execute a Gemini API call with structured JSON output"""
+    # Execute a Gemini API call with structured JSON output
 
-    key = check_api_key("GEMINI_API_KEY")
+    key = check_api_key("GOOGLE_API_KEY2")
     gemini_schema = json_to_gemini_schema(schema)
     client = genai.Client(api_key=key)
 
@@ -37,6 +38,9 @@ def run_gemini(sys_prompt, usr_prompt, schema, model, temperature, debug):
             ],
         )
     ]
+
+    transient_errors = [500, 429, 503, 504]
+    fatal_errors = [400, 404]
 
     try:
         response = client.models.generate_content(
@@ -52,10 +56,12 @@ def run_gemini(sys_prompt, usr_prompt, schema, model, temperature, debug):
                 ),
             ),
         )
-    except APIError as e:
-        raise APIError(f"Gemini API call failed: {e}") from e
-    except Exception as e:
-        raise Exception(f"An unexpected error occurred: {e}") from e
+
+    except errors.APIError as e:
+        if e.code in transient_errors:
+            raise TransientAPIError(e.message) from e
+        elif e.code in fatal_errors:
+            raise FatalAPIError(e.message) from e
 
     if debug:
         print(response)
@@ -63,9 +69,7 @@ def run_gemini(sys_prompt, usr_prompt, schema, model, temperature, debug):
     try:
         parsed = json.loads(response.text)
     except json.JSONDecodeError as e:
-        raise InvalidResponseError(
-            f"Malformed or invalid JSON in Gemini response: {response.text}"
-        ) from e
+        raise InvalidResponseError("[TRANSIENT] Invalid JSON in response.") from e
 
     usage_info = response.usage_metadata.model_dump() if response.usage_metadata else {}
 

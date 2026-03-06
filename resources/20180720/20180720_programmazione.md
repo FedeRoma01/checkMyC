@@ -1,93 +1,133 @@
-# 20180720 Programmazione
+# 20180720 – Programmazione
 
-Fondamenti di Informatica
+## Fondamenti di Informatica  
 20/07/2018
-Contesto
-Si consideri un ventilatore da soﬃtto come quello rappresentato nella ﬁgura sotto a sinistra. Il ventilatore, che integra una
-lampada, viene controllato tramite il telecomando mostrato nella ﬁgura sotto a destra.
-Il telecomando dispone di 7 pulsanti con le seguenti funzionalit`a:
-• Spegnimento della ventola (pulsante OFF).
-• Accensione/spegnimento della luce (pulsante LIGHT); se la luce accesa, la pressione del pulsante la spegne e viceversa.
-• Accensione della ventola a varie velocit`a: bassa (pulsante (L)ow), media (pulsante M) o alta (pulsante (H)igh).
-• Impostazione di un timer per lo spegnimento automatico della ventola dopo 1 ora dalla pressione del pulsante “1h” oppure
-dopo 3 ore dalla pressione del pulsante “3h”. Se il timer gi impostato, la pressione di uno dei due tasti di spegnimento
-temporizzato fa ripartire il timer da zero. Inoltre, se il pulsante del timer viene premuto quando la ventola `e spenta, il suo
-eﬀetto `e nullo.
-Il ventilatore `e collocato in un sistema di automazione domestica che riceve e registra i comandi impostati tramite il telecomando.
-I dati vengono registrati in un ﬁle di testo, un comando per riga. Il formato della singola riga `e il seguente:
+
+## Contesto
+Si consideri un ventilatore da soffitto come quello rappresentato nella figura a sinistra. Il ventilatore, che integra una lampada, viene controllato tramite il telecomando mostrato nella figura a destra.
+
+Il telecomando dispone di **7 pulsanti** con le seguenti funzionalità:
+
+- **OFF** – Spegnimento della ventola.  
+- **LIGHT** – Accensione/spegnimento della luce; se la luce è accesa, la pressione del pulsante la spegne e viceversa.  
+- **L / M / H** – Accensione della ventola rispettivamente a velocità *bassa*, *media*, *alta*.  
+- **1h / 3h** – Impostano un timer per lo spegnimento automatico della ventola dopo 1 ora o 3 ore.  
+  - Se il timer è già impostato, la pressione di uno dei due pulsanti lo riavvia.  
+  - Se la ventola è spenta, il comando del timer non ha effetto.
+
+Il ventilatore è inserito in un sistema di automazione domestica che riceve e registra i comandi in un file di testo, uno per riga.
+
+### Formato linea del file
+```
 timestamp comando
-dove
-• timestamp rappresenta il numero di millisecondi trascorsi dalla mezzanotte del giorno corrente.
-• comando `e una stringa associata al nome del pulsante nell’insieme { OFF, LIGHT, L, M, H, 1h, 3h }, case-sensitive.
-Il ﬁle contiene i dati di un singolo, intero giorno di registrazioni. Le registrazioni sono in ordine crescente di timestamp. Si
-consideri che a mezzanotte, istante di inizio della registrazione, il ventilatore ha la luce accesa e la ventola spenta.
-Un esempio di ﬁle contenente tre misurazioni `e il seguente:
+```
+
+- **timestamp**: millisecondi trascorsi dalla mezzanotte del giorno corrente  
+- **comando**: uno tra `{OFF, LIGHT, L, M, H, 1h, 3h}` (case‑sensitive)
+
+Le registrazioni sono in ordine crescente di timestamp.  
+A mezzanotte: **luce accesa**, **ventola spenta**.
+
+### Esempio di file
+```
 10000 LIGHT
 15050 L
 20132 1h
 21000 OFF
-Informazioni sul programma richiesto
-Si scriva un programma in linguaggio C in grado di elaborare un ﬁle avente il formato descritto, al ﬁne di restituire i risultati
-indicati nei punti speciﬁcati di seguito. Il programma deve poter essere invocato da linea di comando. Un esempio di invocazione
-`e la seguente:
+```
+
+---
+
+## Specifiche del Programma Richiesto
+
+Il programma C deve elaborare un file nel formato descritto ed essere invocabile da linea di comando:
+
+```
 ./a.out nome_input_file
-dove a.out `e il nome del programma eseguibile da invocare; nome input file `e il nome del ﬁle di dati da elaborare.
-IMPORTANTE: il programma ﬁnale dovr`a produrre la stampa di risultati esattamente col formato speciﬁcato nei vari punti.
-In particolare, non aggiungere all’output del testo non richiesto.
-Eventuali righe di output aggiuntive che si vogliono generare in fase di debug, ma che si vogliono escludere dai test, possono
-essere stampate includendo in prima posizione il carattere #.
-Il buon funzionamento del programma pu`o essere veriﬁcato col comando
+```
+
+Il programma deve produrre **esattamente** gli output richiesti, senza testo aggiuntivo.  
+Le righe di debug devono iniziare con `#`.
+
+Per verificare il funzionamento:
+```
 ./pvcheck ./a.out
-dove a.out `e il nome del ﬁle eseguibile.
-RICHIESTE
-1
-Pulsante maggiormente premuto
-Determinare il pulsante che registra il maggior numero di pressioni nel giorno di registrazione. In caso per pi`u di un pulsante si
-registri un numero di pressioni pari al massimo, stampare solo quello la cui registrazione compare per prima nel ﬁle.
-Riportare il nome del pulsante, usando una delle stringhe associate al nome del pulsante, col seguente formato:
+```
+
+---
+
+## Richieste
+
+### 1. Pulsante maggiormente premuto
+Determinare il pulsante con il maggior numero di pressioni.  
+In caso di parità, scegliere quello che compare **prima** nel file.
+
+Output:
+```
 [MAX-PRESSIONI]
 comando
-2
-Tempo medio di accensione della luce
-Calcolare la durata del tempo di accensione della luce nel giorno di registrazione. Arrotondare al secondo e all’intero pi`u vicino
-per difetto il valore calcolato. Stamparne il valore con il seguente formato:
+```
+
+---
+
+### 2. Tempo medio di accensione della luce
+Calcolare il tempo totale in cui la luce è stata accesa.  
+Arrotondare ai secondi **per difetto**.
+
+Se l’ultimo comando LIGHT accende la luce, considerarla accesa fino a mezzanotte.
+
+Output:
+```
 [MEDIA-LUCE]
 MEDIA
-Se l’ultimo comando di tipo LIGHT presente nel ﬁle corrisponde all’accensione della luce, considerare che questa rimanga accesa
-ﬁno alla mezzanotte esatta del giorno stesso.
-3
-Tempo totale di accensione della ventola a velocit`a alta
-Calcolare il tempo totale di accensione della ventola a velocit`a alta (comando H) nel giorno di registrazione. Si consideri di
-trascurare l’eﬀetto dei timer di spegnimento, ovvero non considerare l’eﬀetto di tali comandi nel funzionamento della ventola.
-Stamparne il valore con il seguente formato:
+```
+
+---
+
+### 3. Tempo totale di accensione della ventola a velocità alta
+Calcolare la durata totale della ventola alla velocità impostata con il comando **H**, ignorando gli effetti del timer.
+
+Se non arriva più un comando che modifica la velocità o spegne la ventola, considerare attiva fino a mezzanotte.
+
+Output:
+```
 [TOT-ALTA-VELOCITA]
 DURATA
-Se dopo l’ultimo comando di tipo H presente nel ﬁle non viene pi`u dato un comando che modiﬁchi la velocit`a di rotazione della
-ventola, o la spenga, considerare che la ventola rimanga accesa a velocit`a alta ﬁno alla mezzanotte esatta del giorno stesso.
-4
-Tempo totale di accensione della ventola, indipendentemente dalla velocit`a
-Calcolare il tempo totale di accensione della ventola nel giorno di registrazione, indipendentemente dalla velocit`a impostata.
-Si consideri di trascurare l’eﬀetto dei timer di spegnimento, ovvero non considerare l’eﬀetto di tali comandi nel funzionamento
-della ventola. Stamparne il valore con il seguente formato:
+```
+
+---
+
+### 4. Tempo totale di accensione della ventola (qualsiasi velocità)
+Calcolare il tempo totale di accensione della ventola, indipendentemente dalla velocità, ignorando i timer.
+
+Se non arriva un OFF dopo un'accensione, considerarla accesa fino a mezzanotte.
+
+Output:
+```
 [TOT-ACCENSIONE]
 DURATA
-Se dopo l’ultimo comando di accensione della ventola non viene pi`u dato un comando di spegnimento, considerare che la ventola
-rimanga accesa ﬁno alla mezzanotte esatta del giorno stesso.
-..:: CONTINUA SULL’ALTRO LATO ::..
-5
-Ordinamento
-Ordinare alfabeticamente (tramite strcmp) le misurazioni in senso crescente rispetto al comando. In caso pi`u misurazioni siano
-presenti per lo stesso comando, ordinare tali misurazioni in senso crescente di timestamp.
-Riportare le righe ordinate con lo stesso formato del ﬁle di ingresso:
+```
+
+---
+
+### 5. Ordinamento
+Ordinare alfabeticamente (strcmp) le misurazioni in base al comando.  
+A parità di comando, ordinare per timestamp crescente.  
+Non esistono due righe con lo stesso timestamp.
+
+Output:
+```
 [ORDINAMENTO]
 timestamp_1 comando_1
 ...
 timestamp_n comando_n
-Si consideri che non vi possono essere due o pi`u comandi aventi lo stesso timestamp.
-Note
-• salvare il proprio programma nella directory di lavoro
-• assegnare il nome del ﬁle in base al proprio cognome, chiamandolo cognome.c (es. facchinetti.c)
-• il primo commento del programma deve riportare nome e cognome e numero di matricola
-• vengono valutati positivamente aspetti quali la leggibilit`a del programma, una buona formattazione del sorgente, l’uso
-appropriato dei commenti, modularit`a e generalit`a del codice
-• `e possibile far uso di manuali, testi, appunti e dispense, ma non di eserciziari (raccolte di esercizi risolti)
+```
+
+---
+
+## Note Finali
+- Salvare il programma nella directory di lavoro.  
+- Nome file: **cognome.c**  
+- Il primo commento del programma deve contenere: nome, cognome, matricola.  
+- Sono valutati positivamente leggibilità, formattazione, commenti, modularità e generalità.  
+- Si possono usare manuali, testi, appunti, dispense. Non eserciziari.

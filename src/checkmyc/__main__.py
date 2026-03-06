@@ -6,8 +6,10 @@ import tomllib
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
+from time import sleep
 
 from .api.model_runner import normalize_usage_dispatch, run_model_dispatch
+from .api.utils_api import FatalAPIError, TransientAPIError
 from .code.config import (
     build_prompt_context,
     generate_schema,
@@ -137,7 +139,7 @@ def make_safe_dirname(s: str) -> str:
     return safe_name
 
 
-logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+logging.basicConfig(level=logging.ERROR, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -252,9 +254,43 @@ def main():
         # MODEL CALL
         model = input_args.model
         provider = input_args.provider
-        parsed, usage, provider = run_model_dispatch(
-            provider, model, system_prompt, user_prompt, schema, temperature, debug
-        )
+
+        MAX_RETRIES = 2
+        skip_prog = False
+        for attempt in range(MAX_RETRIES + 1):
+            try:
+                parsed, usage, provider = run_model_dispatch(
+                    provider,
+                    model,
+                    system_prompt,
+                    user_prompt,
+                    schema,
+                    input_args.prompt_price,
+                    input_args.completion_price,
+                    temperature,
+                    debug,
+                )
+            except TransientAPIError as e:
+                if attempt == MAX_RETRIES:
+                    logger.error(f"Transient error after retries: {e}")
+                    skip_prog = True
+                else:
+                    print(f"Retrying API call for {program_name}")
+                    sleep(2**attempt)
+            except InvalidResponseError as e:
+                logger.error(f"Invalid model output: {e}")
+                skip_prog = True
+                break
+            except FatalAPIError as e:
+                logger.error(f"Fatal API error: {e}")
+                skip_prog = True
+                break
+
+        if skip_prog:
+            print(f"API call for {program_name} FAILED")
+            continue  # skip the rest of the external iteration
+        # other instructions are executed if the retry was successful
+
         tokens = normalize_usage_dispatch(provider, usage)
 
         call_cost = compute_cost(model, tokens, pricing)
@@ -298,14 +334,9 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except FileNotFoundError as e:
-        logger.error(e)
-        sys.exit(1)
     except (APIError, InvalidResponseError, OSError) as e:
         logger.error(f"API or system error: {e}")
         sys.exit(1)
-    except TypeError as e:
-        logger.error(e)
-    except Exception:
-        logger.exception("Unexpected fatal error")
+    except Exception as e:
+        logger.exception(f"Unexpected fatal error: {e}")
         sys.exit(1)

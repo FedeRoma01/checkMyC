@@ -1,15 +1,15 @@
-### Error detection and handling
+### Error handling
 
 **Objective:**  
-Evaluate the correctness and completeness of runtime error checks and the program’s ability to handle invalid conditions deterministically.
+Evaluate the correctness and completeness of runtime error checks and the program’s ability to handle invalid conditions deterministically, verifying not only whether checks exist but whether they are placed and used correctly.
 
 **Evaluation Criteria:**  
 - Verify validation of command-line arguments.
 - Verify file opening checks.
 - Verify dynamic allocation checks.
-- Verify sscanf return-value.
-- Verify controlled handling and termination on failures.
-- Detect missing checks for critical operations.
+- Verify sscanf return-value is validated properly before processed fields are used.
+- Verify controlled handling and termination on failures, ensuring the flow actually stops or reacts to the error.
+- Detect missing, misplaced, unreachable, or ineffective checks for critical operations.
 
 **Reference-Solution Valid Elements:**  
 In the reference program, the following aspects are present and **must be always considered correct and must not be considered errors with `goodness`: `-`**:
@@ -23,10 +23,4 @@ In the reference program, the following aspects are present and **must be always
 - All relevant runtime errors (invalid file, bad input, failed allocation) are detected and handled locally.
 
 **To achieve 10/10:**
-The program must handle all foreseeable error cases — invalid parameters, missing files, allocation failures, malformed input — without abnormal termination. Every error must be correctly handled preserving internal data consistency and ensuring controlled program exit.
-
-
-
-
-
-
+Error checks must be placed before the value is used and must trigger safe, controlled behavior. Every invalid condition must be caught early, handled deterministically, and must not allow inconsistent or unsafe program states.

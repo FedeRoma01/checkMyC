@@ -18,6 +18,11 @@ checkmyc = "checkmyc.__main__:main"
 [tool.uv]
 package = true
 
+[tool.uv.workspace]
+members = [
+    "analysis",
+]
+
 [tool.black]
 line-length = 88
 target-version = ["py311"]

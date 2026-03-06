@@ -14,7 +14,15 @@ PROVIDERS = {
 
 
 def run_model_dispatch(
-    provider, model, system_prompt, user_prompt, schema, temperature, debug
+    provider,
+    model,
+    system_prompt,
+    user_prompt,
+    schema,
+    prompt_price,
+    compl_price,
+    temperature,
+    debug,
 ):
     if provider:
         if provider == "google" or provider == "openai":
@@ -26,7 +34,14 @@ def run_model_dispatch(
         )
         return parsed, usage, provider
     parsed, usage, provider = run_router_request(
-        system_prompt, user_prompt, schema, model, 0, 0, temperature, debug
+        system_prompt,
+        user_prompt,
+        schema,
+        model,
+        prompt_price,
+        compl_price,
+        temperature,
+        debug,
     )
     return parsed, usage, provider
 

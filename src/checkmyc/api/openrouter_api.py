@@ -1,10 +1,16 @@
 import json
 from typing import re
 
+import openai
 import requests
 from openai import OpenAI
 
-from ..api.utils_api import APIError, InvalidResponseError, check_api_key
+from ..api.utils_api import (
+    FatalAPIError,
+    InvalidResponseError,
+    TransientAPIError,
+    check_api_key,
+)
 
 
 def normalize_usage_openrouter(usage: dict) -> dict:
@@ -21,9 +27,14 @@ def normalize_usage_openrouter(usage: dict) -> dict:
 
 def run_openrouter(sys_prompt, usr_prompt, schema, model, temperature, debug):
     """Execute an API call using OpenRouter with structured JSON output"""
-    key = check_api_key("OPENROUTER_API_KEY1")
+    key = check_api_key("OPENROUTER_API_KEY2")
 
-    client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=key)
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=key,
+        max_retries=0,
+        timeout=120.0,
+    )
 
     try:
         response = client.chat.completions.create(
@@ -42,8 +53,15 @@ def run_openrouter(sys_prompt, usr_prompt, schema, model, temperature, debug):
             },
             temperature=temperature,
         )
-    except Exception as e:
-        raise APIError(f"OpenRouter API call failed: {e}") from e
+    except (
+        openai.RateLimitError,
+        openai.APITimeoutError,
+        openai.APIConnectionError,
+        openai.InternalServerError,
+    ) as e:
+        raise TransientAPIError(f"API Error: {e}") from e
+    except (openai.APIError, openai.AuthenticationError, InvalidResponseError) as e:
+        raise FatalAPIError(f"API Error: {e}") from e
 
     if debug:
         print(response)
@@ -81,7 +99,7 @@ def run_router_request(
     debug,
 ):
     """Execute direct OpenRouter API call with explicit provider control and price constraints."""
-    key = check_api_key("OPENROUTER_API_KEY1")
+    key = check_api_key("OPENROUTER_API_KEY2")
 
     headers = {
         "Authorization": f"Bearer {key}",
@@ -121,7 +139,7 @@ def run_router_request(
         response.raise_for_status()
         data = response.json()
     except requests.RequestException as e:
-        raise APIError(f"OpenRouter HTTP error: {e}") from e
+        raise TransientAPIError(f"OpenRouter HTTP error: {e}") from e
     except json.JSONDecodeError as e:
         raise InvalidResponseError(
             f"Invalid JSON from OpenRouter: {response.text}"

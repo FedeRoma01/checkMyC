@@ -106,7 +106,7 @@ def save_json_and_html(
 
 
 def build_prompt_context(topics, analysis):
-    """Combine topics and analysis markdowns into a single string"""
+    """Combine topics and scripts markdowns into a single string"""
     parts = []
     for topic in topics:
         desc_path = _resolve_path(topic.get("description"), base=DATA_DIR / "topics")
@@ -128,17 +128,18 @@ def render_prompts(sys_prompt_path, usr_prompt_path, context_dict):
     loader_dirs = []
     if sys_p.parent.exists():
         loader_dirs.append(str(sys_p.parent))
-    if usr_p.parent.exists() and str(usr_p.parent) not in loader_dirs:
+    if usr_p.parent.exists():
         loader_dirs.append(str(usr_p.parent))
-    # always add package prompts dir as fallback
-    loader_dirs.append(str(DATA_DIR / "prompts"))
 
-    env = Environment(
-        loader=FileSystemLoader(loader_dirs), autoescape=select_autoescape()
+    sys_env = Environment(
+        loader=FileSystemLoader(loader_dirs[0]), autoescape=select_autoescape()
+    )
+    usr_env = Environment(
+        loader=FileSystemLoader(loader_dirs[1]), autoescape=select_autoescape()
     )
 
-    sys_template = env.get_template(sys_p.name)
-    usr_template = env.get_template(usr_p.name)
+    sys_template = sys_env.get_template(sys_p.name)
+    usr_template = usr_env.get_template(usr_p.name)
 
     system_prompt = sys_template.render(context_dict)
     user_prompt = usr_template.render(context_dict)

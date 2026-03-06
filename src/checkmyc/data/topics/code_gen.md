@@ -1,12 +1,13 @@
-### Code Generality
+### Code generality
 
 **Objective:**  
-Evaluate whether the program adheres to general-purpose, beginner-appropriate coding practices that improve readability, reuse, and usability.
+Evaluate whether the program adheres to general-purpose, beginner-appropriate coding practices that improve readability, reuse, and usability, checking the correctness of use rather than mere presence.
+Italian language usage is allowed and must not be detected.
 
 **Evaluation Criteria:**  
-- Verify that the program accepts the input filename through CLI arguments, without using hard-coded filenames.
+- Verify correct use of CLI arguments for filenames and that no hard-coded filenames are used.
 - Verify consistent formatting: indentation, spacing, brace style.
-- Verify comment clarity and placement.
+- Verify comments express intent, avoid redundancy, and are placed meaningfully.
 
 **Reference-Solution Valid Elements:**  
 In the reference program, the following aspects are present and **must be always considered correct and must not be considered errors with `goodness`: `-`**:

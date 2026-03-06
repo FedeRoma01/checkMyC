@@ -3,126 +3,231 @@
 <head>
     <meta charset="UTF-8">
     <title>Evaluation Result</title>
+
     <style>
         body {
-            background-color: #121212;
-            color: #e0e0e0;
+            background-color: #1c1c1c;
+            color: #e8e8e8;
             font-family: sans-serif;
+            font-size: 16px;
             margin: 2rem 4rem;
+            line-height: 1.55;
         }
-        h1, h2, h3 { color: #fff; }
-        pre {
-            background: #f4f4f4;
-            padding: 1rem;
-            border-radius: 5px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: #1e1e1e;
-        }
-        .outer-table {
-            width: auto;
-            margin-bottom: 2rem;
-            border: 1px;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 0.5rem;
-            text-align: left;
-        }
-        .inner * { border: none; }
-        th {
-            background-color: #2b2b2b;
+
+        h1 {
+            font-size: 1.8em;
+            margin-bottom: 0.3em;
             color: #ffffff;
         }
-        li { margin-bottom: 0.5rem; }
-        pre, code {
-            border: 1px solid #ccc;
-            background-color: #1a1a1a;
-            color: #fff;
-            border-radius: 5px;
-            padding: 1rem;
+
+        h2 {
+            font-size: 1.3em;
+            margin-top: 0.8em;
+            margin-bottom: 0.4em;
+            color: #ffffff;
         }
+
+        hr {
+            border: none;
+            border-top: 1px solid #aaaaaa;
+            margin: 1.2em 0;
+        }
+
+        p {
+            margin: 0.25em 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            font-size: 1em;
+        }
+
+        table.full {
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid #aaaaaa;
+            padding: 0.45em 0.7em;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        th {
+            background-color: #2a2a2a;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        td {
+            background-color: #1f1f1f;
+        }
+
+        .inner table,
+        .inner td,
+        .inner th {
+            border: none;
+            padding: 0;
+            background: none;
+        }
+
+        ul {
+            margin: 0.4em 0 0.6em 0;
+            padding-left: 1.1em;
+        }
+
+        li {
+            margin: 0.3em 0;
+        }
+
+        pre {
+            border: 1px solid #aaaaaa;
+            padding: 0.8em;
+            font-size: 0.95em;
+            background-color: #242424;
+            color: #e8e8e8;
+            white-space: pre-wrap;
+        }
+
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1px 1fr;
+            column-gap: 2em;
+            align-items: start;
+            margin-top: 0;
+        }
+
+        .two-columns h2 {
+            margin-top: 0;
+        }
+
+        .vertical-separator {
+            background-color: #aaaaaa;
+            width: 1px;
+            height: 100%;
+        }
+
+        table.compact {
+            width: auto;
+            white-space: nowrap;
+        }
+
+        table.compact th,
+        table.compact td {
+            text-align: left;
+        }
+
         a {
-            color: p;
-        }
-        a:visited {
-            color: blue;
+            color: #e8e8e8;
+            text-decoration: underline;
         }
     </style>
 </head>
-<body>
-    <h1>LLM Evaluation</h1>
-    <p><strong>Model:</strong> {{ data.model.name }}</p>
-    <p><strong>Provider:</strong> {{ data.model.provider }}</p>
-    <p><strong>Final Score:</strong> {{ data.final_score }}</p>
-    <p><strong>Call cost:</strong> ${{ data.call_cost }}</p>
-    <p><strong>Evaluated program:</strong> <a href="{{ data.program.path }}">{{ data.program.name }}</a></p>
 
-    <h2>LLM Results</h2>
-    <table class="outer-table">
-        <tr><th>Name</th><th>Score</th><th>Comments</th><th>Goodness</th><th>Criticality</th><th>Lines</th></tr>
-        {% for ev in data.LLM.evaluations %}
-        <tr>
-            <td>{{ ev.name }}</td>
-            <td>{{ ev.score }}</td>
-            <td class="inner">
-                <table>
+<body>
+
+<h1>CheckMyC Evaluation</h1>
+<hr>
+
+<p><strong>Model:</strong> {{ data.model.name }}</p>
+<p><strong>Provider:</strong> {{ data.model.provider }}</p>
+<p><strong>Final Score:</strong> {{ data.final_score }}</p>
+<p><strong>Call cost:</strong> ${{ data.call_cost }}</p>
+<p><strong>Evaluated program:</strong> <a href="{{ data.program.name }}">{{ data.program.name }}</a></p>
+
+<hr>
+
+<h2>LLM Results</h2>
+
+<table class="full">
+    <tr>
+        <th>Name</th>
+        <th>Score</th>
+        <th>Comments</th>
+        <th>Goodness</th>
+        <th>Criticality</th>
+        <th>Lines</th>
+    </tr>
+    {% for ev in data.LLM.evaluations %}
+    <tr>
+        <td>{{ ev.name }}</td>
+        <td>{{ ev.score }}</td>
+        <td class="inner">
+            <table>
                 {% for comm in ev.evidences %}
-                <tr class="inner"><td>{{ comm.comment }}</td></tr>
+                <tr><td>{{ comm.comment }}</td></tr>
                 {% endfor %}
-                </table>
-            </td>
-             <td class="inner">
-                <table>
+            </table>
+        </td>
+        <td class="inner">
+            <table>
                 {% for sign in ev.evidences %}
-                <tr class="inner"><td>{{ sign.goodness }}</td></tr>
+                <tr><td>{{ sign.goodness }}</td></tr>
                 {% endfor %}
-                </table>
-            </td>
-            <td class="inner">
-                <table>
+            </table>
+        </td>
+        <td class="inner">
+            <table>
                 {% for crit in ev.evidences %}
-                <tr class="inner"><td>{{ crit.criticality }}</td></tr>
+                <tr><td>{{ crit.criticality }}</td></tr>
                 {% endfor %}
-                </table>
-            </td>
-            <td class="inner">
-               <table>
+            </table>
+        </td>
+        <td class="inner">
+            <table>
                 {% for l in ev.evidences %}
                 <tr><td>{{ l.lines }}</td></tr>
                 {% endfor %}
-                </table>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+            </table>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
 
-    <h2>Priority Issues</h2>
-    <ul>
-        {% for issue in data.LLM["priority issues"] %}
-        <li>{{ issue }}</li>
-        {% endfor %}
-    </ul>
+<hr>
 
-    <h2>Practical Tips</h2>
-    <ul>
-        {% for tip in data.LLM.practical_tips %}
-        <li>{{ tip }}</li>
-        {% endfor %}
-    </ul>
+<div class="two-columns">
+    <div>
+        <h2>Priority Issues</h2>
+        <ul>
+            {% for issue in data.LLM["priority issues"] %}
+            <li>{{ issue }}</li>
+            {% endfor %}
+        </ul>
+    </div>
 
-    <h2>Tests Results</h2>
-    <table class="outer-table">
-        <tr><th>Test</th><th>Score</th></tr>
-        {% for k, v in data.tests_scores.items() %}
-        <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
-        {% endfor %}
-    </table>
+    <div class="vertical-separator"></div>
 
-    <h2>Weights</h2>
-    <pre>{{ data.weights | tojson(indent=2) }}</pre>
+    <div>
+        <h2>Practical Tips</h2>
+        <ul>
+            {% for tip in data.LLM.practical_tips %}
+            <li>{{ tip }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<hr>
+
+<div class="two-columns">
+    <div>
+        <h2>Tests Results</h2>
+        <table class="compact">
+            <tr><th>Test</th><th>Score</th></tr>
+            {% for k, v in data.tests_scores.items() %}
+            <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="vertical-separator"></div>
+
+    <div>
+        <h2>Weights</h2>
+        <pre>{{ data.weights | tojson(indent=2) }}</pre>
+    </div>
+</div>
 
 </body>
 </html>

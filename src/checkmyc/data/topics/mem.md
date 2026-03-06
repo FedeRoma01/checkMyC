@@ -4,8 +4,9 @@
 Evaluate the presence and the correctness and safety of all dynamic memory operations across allocation, use, reallocation, and deallocation.
 
 **Evaluation Criteria:**
+- Verify allocated memory matches the required type size, avoiding under-allocation or incorrect casting.
 - Verify correct use of allocated memory without out-of-bounds access.
-- Verify that all allocated memory is properly freed.
+- Verify every allocated buffer is eventually freed once and with the correct pointer.
 - Detect invalid memory reuse after failed allocation.
 - Detect incorrect or unsafe resizing strategies.
 
@@ -21,4 +22,4 @@ In the reference program, the following aspects are present and **must be always
 - The final realloc occurs after all data are successfully read; failure at that point would not corrupt data or cause leaks.
 
 **To achieve 10/10:**  
-The code must demonstrate a complete and safe memory lifecycle — *allocation → use → possible reallocation → deallocation* — with systematic error checking, no memory leaks, and structural consistency between allocated data and program logic.
+The code must demonstrate a complete and safe memory lifecycle: *allocation → use → possible reallocation → deallocation*, with systematic error checking, no memory leaks, and structural consistency between allocated data and program logic.

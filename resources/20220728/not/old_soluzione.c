@@ -21,7 +21,7 @@ struct file {
 /* Lettura del file; la struttura dati contiene tutte le informazioni relative al file,
  * incluso il numero di righe lette; è quindi sufficiente per restituire tutte le
  * informazioni necessarie alla funzione chiamante. */
-int leggi_file(FILE *f, struct file *dati)
+void leggi_file(FILE *f, struct file *dati)
 {
     int dimc = 1, s, i;
     struct linea *linea, *tmp;
@@ -29,13 +29,13 @@ int leggi_file(FILE *f, struct file *dati)
     
     dati->n = 0;
     dati->linee = malloc(dimc * sizeof(*(dati->linee)));
-    if (dati->linee == NULL) return -1;
+    if (dati->linee == NULL) return;
 
     while (fgets(buf, sizeof(buf), f)) {
         // assegno l'indirizzo dell'elemento di interesse ad un puntatore,
         // per evitare di ripetere l'indirizzamento per ogni valore da passare alla sscanf
         linea = dati->linee + dati->n;
-        int numbers = sscanf(buf, "%d %d %d %d %d %d %d %d %d %d",
+        sscanf(buf, "%d %d %d %d %d %d %d %d %d %d",
                 linea->numeri + 0,
                 linea->numeri + 1,
                 linea->numeri + 2,
@@ -46,49 +46,29 @@ int leggi_file(FILE *f, struct file *dati)
                 linea->numeri + 7,
                 linea->numeri + 8,
                 linea->numeri + 9);
+        // calcolo la somma dei valori nella riga
+        s = 0;
+        for (i = 0; i < NNUM; ++i) {
+            s += linea->numeri[i];
+        }
+        linea->somma = s;
 
         // indice della riga successiva
         dati->n += 1;
 
-        if (numbers == 10) {
-            // calcolo la somma dei valori nella riga
-            s = 0;
-            for (i = 0; i < NNUM; ++i) {
-                s += linea->numeri[i];
+        // ridimensionamento del vettore di righe
+        if (dati->n >= dimc) {
+            dimc *= 2;
+            tmp = realloc(dati->linee, dimc * sizeof(*(dati->linee)));
+            if (tmp == NULL) {
+                free(dati->linee);
+                return;
             }
-            linea->somma = s;
-
-            // ridimensionamento del vettore di righe
-            if (dati->n >= dimc) {
-                dimc *= 2;
-                tmp = realloc(dati->linee, dimc * sizeof(*(dati->linee)));
-                if (tmp == NULL) {
-                    printf("Errore di riallocazione della memoria");
-                    free(dati->linee);
-                    return -1;
-                }
-                dati->linee = tmp;
-            }
-        } else {
-            printf("# Avviso: Linea %d non considerata perchè non contiene esattamente 10 elementi", dati->n);
-        }
-    }
-    if (dati->n > 0) {
-        // ridimensionamento del vettore per contenere solo i dati effettivamente letti
-        tmp = realloc(dati->linee, dati->n * sizeof(*(dati->linee)));
-        // Se realloc fallisce, si mantiene il blocco precedente (dati->linee).
-        // Non c'è perdita di dati, solo di memoria ottimizzata, quindi l'errore è ignorabile.
-        if (tmp == NULL) {
-            printf("# Avviso: Impossibile ottimizzare l'allocazione finale (realloc fallita).\n");
-        } else {
             dati->linee = tmp;
         }
-    } else {
-        // Se non è stata letta alcuna riga valida, si libera l'allocazione iniziale.
-        free(dati->linee);
     }
-
-    return 0;
+    // ridimensionamento del vettore per contenere solo i dati effettivamente letti
+    dati->linee = realloc(dati->linee, dati->n * sizeof(*(dati->linee)));
 }
 
 /* Funzione che risolve il punto 1 */
@@ -232,22 +212,8 @@ int main(int argc, char *argv[])
         return 1;
     }
     // lettura del file
-    if (leggi_file(f, &dati) != 0) {
-        // chiudo il file
-        fclose(f);
-        return 1;
-    }
-
-    // chiudo il file
+    leggi_file(f, &dati);
     fclose(f);
-
-    // controllo se ho letto almeno una riga
-    if (dati.n == 0) {
-        puts("Nessuna riga valida trovata nel file. Uscita.");
-        // Libera la memoria (già liberata in leggi_file se n=0, ma qui si riassicura)
-        free(dati.linee);
-        return 0;
-    }
 
     // ogni quesito viene indirizzato all'interno di una funzione dedicata
     puts("[CONTRARIO]");
@@ -264,8 +230,6 @@ int main(int argc, char *argv[])
     puts("[ORDINAMENTO]");
     qsort(dati.linee, dati.n, sizeof(*(dati.linee)), cmp);
     stampa_somme(&dati);
-
-    free(dati.linee);
     
     return 0;
 }

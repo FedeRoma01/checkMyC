@@ -1,13 +1,13 @@
 ### Appropriate data structures
 
 **Objective:**  
-Evaluate whether the chosen data structures fit the program’s functional goals. Detect inefficient, overcomplicated, or incorrect structure choices.
+Evaluate whether the chosen data structures fit the program’s functional goals and whether they are used correctly, not merely present. Detect inefficient, overcomplicated, or incorrect structure choices.
 
 **Evaluation Criteria:**
 - Verify that structures match the semantics of the file format.
 - Verify that stored fields minimize redundancy.
 - Detect unnecessary complexity in struct design.
-- Detect misuse of arrays or structs that harms clarity or performance.
+- Detect misuse of arrays or structs, including incorrect sizes, out-of-bounds access, and inconsistent representation of stored data that harms clarity or performance.
 
 **Reference-Solution Valid Elements:**  
 In the reference program, the following aspects are present and **must be always considered correct and must not be considered errors with `goodness`: `-`**:
@@ -18,4 +18,4 @@ In the reference program, the following aspects are present and **must be always
 - The histogram in `max_distribuzione` is implemented as a static array of 201 integers, an optimal solution for the range [-100, 100].
 
 **To achieve 10/10:**  
-Data structures must be designed to match the semantics of the problem, minimizing redundancy and maximizing clarity. They should simplify each required operation, not complicate it. Structures should be logically cohesive, efficient, and directly aligned with the intended processing tasks.
+Data structures must be semantically coherent, sized correctly, initialized before use, and designed to simplify all operations. They must avoid out-of-bounds accesses, redundancy, and structural inconsistencies.

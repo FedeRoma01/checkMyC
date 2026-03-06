@@ -1,8 +1,17 @@
 import json
+import logging
 
+import openai
 from openai import OpenAI
 
-from ..api.utils_api import APIError, InvalidResponseError, check_api_key
+from ..api.utils_api import (
+    FatalAPIError,
+    InvalidResponseError,
+    TransientAPIError,
+    check_api_key,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_usage_openai(usage: dict) -> dict:
@@ -16,7 +25,7 @@ def normalize_usage_openai(usage: dict) -> dict:
 
 def run_openai(sys_prompt, usr_prompt, schema, model, temperature, debug):
     key = check_api_key("OPENAI_API_KEY")
-    client = OpenAI(api_key=key, max_retries=0)
+    client = OpenAI(api_key=key, max_retries=0, timeout=120.0)
     try:
         response = client.responses.create(
             model=model,
@@ -34,8 +43,15 @@ def run_openai(sys_prompt, usr_prompt, schema, model, temperature, debug):
             },
             temperature=temperature,
         )
-    except Exception as e:
-        raise APIError(f"OpenAI API call failed: {e}") from e
+    except (
+        openai.RateLimitError,
+        openai.APITimeoutError,
+        openai.APIConnectionError,
+        openai.InternalServerError,
+    ) as e:
+        raise TransientAPIError(f"API Error: {e}") from e
+    except (openai.APIError, openai.AuthenticationError, InvalidResponseError) as e:
+        raise FatalAPIError(f"API Error: {e}") from e
 
     if debug:
         print(response)
@@ -43,6 +59,6 @@ def run_openai(sys_prompt, usr_prompt, schema, model, temperature, debug):
     try:
         text = response.output[0].content[0].text
         parsed = json.loads(text)
-    except (AttributeError, IndexError, json.JSONDecodeError) as err:
-        raise InvalidResponseError("Invalid JSON in response.") from err
+    except (AttributeError, IndexError, json.JSONDecodeError) as e:
+        raise InvalidResponseError("[TRANSIENT] Invalid JSON in response.") from e
     return parsed, response.usage.model_dump()

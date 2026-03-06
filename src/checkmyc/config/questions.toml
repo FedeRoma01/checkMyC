@@ -3,10 +3,10 @@
 # QUESTIONS WEIGHTS
 [questions_weights]
 1 = 1.0
-2 = 1.5
-3 = 1.5
-4 = 2.0
-5 = 4.0
+2 = 1.0
+3 = 1.0
+4 = 1.0
+5 = 1.0
 
 # OBJECTIVE TEST WEIGHTS
 [tests_weights]

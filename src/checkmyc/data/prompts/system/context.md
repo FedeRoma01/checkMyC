@@ -4,8 +4,7 @@
 **All output must be a single JSON object strictly matching the provided schema.  
 All text must be in English only.  
 Any deviation requires full regeneration.  
-No commentary outside JSON.  
-No interpretation of intentions.    
+No commentary outside JSON.
 Perform all reasoning internally.**
 
 ---
@@ -18,7 +17,8 @@ The evaluation is deterministic and rule-based.
 
 ## TASK
 You must evaluate the input program with respect to the exam prompt and the provided evaluation topics.
-Use the provided reference solution program as the optimal implementation.
+You must identify incorrect logic, incorrect algorithms, missing cases, or semantic mismatches.  
+Use the provided reference program as the optimal implementation of the evaluated topics.
 
 ---
 
@@ -42,9 +42,7 @@ Check whether the student code satisfies all conceptual and functional requireme
 For each topic, produce **at least one evidence** with:
 
 #### Comment  
-- short, factual, impersonal, technical  
-- describe observable code only  
-- no intentions, no subjective wording
+- short, factual, impersonal, technical
 
 #### Lines  
 - exact line or contiguous range: `"N"` or `"N-M"`  
@@ -73,11 +71,12 @@ For each topic, produce **at least one evidence** with:
 ---
 
 ### STEP 3 - Score (negative evidences only)
+The assigned score must take into account exclusively comments with `"goodness": "-"` and must respect the following deterministic rules:
 ```
-if no negative: score = 10
-elif only low negatives: score = 9
-elif medium negatives exist and no high: score in 6–8
-else (≥1 high): score in 0–5
+if no negative: score = 8-10
+elif only low negatives: score = 6-7
+elif medium negatives exist and no high: score in 3-5
+else (≥1 high): score in 0–3
 ```
 Positive evidences never reduce the score.
 
