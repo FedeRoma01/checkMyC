@@ -33,11 +33,11 @@ project_root/
 |       |   └── questions.toml         # Test weights and question configuration
 |       |
 │       └── data/                      # Static resources
-│           ├── prompts/               # API prompt templates
+│           ├── prompts/               # Prompts used in API call
+│           │   ├──topics/             # Markdown topic descriptions for evaluation (specified in llm.toml)
 │           │   ├── system/
 │           │   └── user/
 |           |
-│           ├── topics/                # Markdown topic descriptions for evaluation (specified in llm.toml)
 │           └── templates/             # HTML report templates
 │
 ├── resources/
@@ -45,8 +45,7 @@ project_root/
 |   └── 20220728/                      # exam folder (contains pvcheck.test, context.md, solution.c and input.dat)
 |
 ├── output/                            # Generated output files and reports
-│   ├── aggregation/                   # folder containing the comments aggregation obtained using the aggregation tool
-│   └── gpt-4_1-mini/                  # output folder containing gpt-4.1-mini based evaluations
+│   └── model/                         # output folder containing "model" evaluations
 │
 ├── config.toml                        # General configuration file
 ├── pyproject.toml                     # Project metadata and dependencies

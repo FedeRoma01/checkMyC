@@ -84,20 +84,6 @@ def init_argparser() -> argparse.ArgumentParser:
         help="Activate debug prints",
     )
     parser.add_argument(
-        "--user_prompt",
-        "-up",
-        type=str,
-        default="no_context.md",
-        help="User prompts file",
-    )
-    parser.add_argument(
-        "--system_prompt",
-        "-sp",
-        type=str,
-        default="no_context.md",
-        help="System prompts file",
-    )
-    parser.add_argument(
         "--provider", "-pr", type=str, help="Provider (openai/gemini/openrouter)"
     )
     parser.add_argument(
@@ -180,7 +166,7 @@ def main():
     program_paths = programs_loading(paths, ".c")
 
     # EXAM/CONTEXT & SOLUTION HANDLING
-    exam_dir, exam_ctx = load_exam_context(input_args, paths, questions)
+    exam_dir, context_flag, exam_ctx = load_exam_context(input_args, paths, questions)
 
     # SCHEMA
     topic_list = [t["name"] for t in topics]
@@ -188,15 +174,14 @@ def main():
 
     # PROMPTS CONSTRUCTION
     args_md = build_prompt_context(topics, paths.get("topics_path"))
-    sys_prompt_path = paths.get("sys_prompt")
-    usr_prompt_path = paths.get("usr_prompt")
+    type_prompt = "context.md" if (exam_dir or context_flag) else "no_context.md"
+
+    sys_prompt_path = paths.get("sys_prompt") / type_prompt
+    usr_prompt_path = paths.get("usr_prompt") / type_prompt
     if not sys_prompt_path or not Path(sys_prompt_path).exists():
         raise FileNotFoundError(f"System prompt not found: {sys_prompt_path}")
     if not usr_prompt_path or not Path(usr_prompt_path).exists():
         raise FileNotFoundError(f"User prompt not found: {usr_prompt_path}")
-
-    system_prompt_name = Path(sys_prompt_path).stem
-    user_prompt_name = Path(usr_prompt_path).stem
 
     provider_name = input_args.provider
     model = input_args.model
@@ -325,9 +310,7 @@ def main():
             / (input_args.output_directory or "")
         )
         output_dir.mkdir(parents=True, exist_ok=True)
-        output_name = (
-            f"{timestamp}_{program_name}_{system_prompt_name}_{user_prompt_name}.json"
-        )
+        output_name = f"{timestamp}_{program_name}_{type_prompt}.json"
         output_path = output_dir / output_name
 
         save_json_and_html(

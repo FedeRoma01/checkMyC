@@ -168,7 +168,7 @@ class ExamContext:
     exam_path: Path | None
 
 
-def load_exam_context(input_args, paths, questions) -> tuple[bool, ExamContext]:
+def load_exam_context(input_args, paths, questions) -> tuple[bool, bool, ExamContext]:
     exam_dir = bool(input_args.exam)
 
     if exam_dir:
@@ -195,19 +195,25 @@ def load_exam_context(input_args, paths, questions) -> tuple[bool, ExamContext]:
         file_target = paths.get("context")
         sol_program = paths.get("solution")
 
+    context_flag = False
     context = load_file(file_target) if Path(file_target).is_file() else ""
     if context:
         context = f"```markdown\n{context}\n```"
+        context_flag = True
 
     solution = load_file(sol_program) if Path(sol_program).is_file() else ""
 
-    return exam_dir, ExamContext(
-        context,
-        solution,
-        program_input if Path(program_input).is_file() else "",
-        quest_weights,
-        pvcheck_flag,
-        exam_path if exam_dir else None,
+    return (
+        exam_dir,
+        context_flag,
+        ExamContext(
+            context,
+            solution,
+            program_input if Path(program_input).is_file() else "",
+            quest_weights,
+            pvcheck_flag,
+            exam_path if exam_dir else None,
+        ),
     )
 
 
@@ -238,14 +244,14 @@ def get_paths(config: dict, config_flag: bool, args: Namespace) -> dict:
         "questions_config": r(base.get("questions")),
         "output": r(Path(base.get("output_path")) / (args.output or "")),
         "topics_path": r(base.get("topic_prompts_path")),
+        "sys_prompt": r(Path(base.get("sys_prompt_path"))),
+        "usr_prompt": r(Path(base.get("usr_prompt_path"))),
     }
     if config_flag:
         paths.update(
             {
                 "programs": r(Path(base.get("programs_path")) / args.program),
                 "exam_text": r(Path(base.get("exam_text_path")) / (args.exam or "")),
-                "sys_prompt": r(Path(base.get("sys_prompt_path")) / args.system_prompt),
-                "usr_prompt": r(Path(base.get("usr_prompt_path")) / args.user_prompt),
                 "input": r(Path(base.get("exam_text_path")) / (args.input or "")),
                 "context": r(Path(base.get("exam_text_path")) / (args.context or "")),
                 "solution": r(Path(base.get("exam_text_path")) / (args.solution or "")),
@@ -257,8 +263,6 @@ def get_paths(config: dict, config_flag: bool, args: Namespace) -> dict:
             {
                 "programs": args.program,
                 "exam_text": args.exam or "",
-                "sys_prompt": args.system_prompt,
-                "usr_prompt": args.user_prompt,
             }
         )
 
