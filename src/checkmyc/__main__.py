@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import re
 import sys
@@ -8,10 +9,17 @@ from datetime import datetime
 from pathlib import Path
 from time import sleep
 
-from .api.model_runner import normalize_usage_dispatch, run_model_dispatch
-from .api.utils_api import FatalAPIError, TransientAPIError
+from .api.model_runner import get_provider
+from .api.utils_api import (
+    CacheAPIError,
+    FatalAPIError,
+    TransientAPIError,
+    compute_cost,
+    save_debug_pair,
+)
 from .code.config import (
     build_prompt_context,
+    cons_lines_to_list,
     generate_schema,
     get_paths,
     load_exam_context,
@@ -119,20 +127,6 @@ def init_argparser() -> argparse.ArgumentParser:
     return parser
 
 
-def compute_cost(model_name, tokens_count, pricing_data):
-    if model_name not in pricing_data:
-        return " Not specified in llm.toml"
-
-    model_prices = pricing_data[model_name]
-    tot_cost = 0
-    for token_type, count in tokens_count.items():
-        if token_type not in model_prices:
-            continue
-        rate = model_prices[token_type]  # USD per 1M tokens
-        tot_cost += (count / 1000000) * rate
-    return tot_cost
-
-
 def make_safe_dirname(s: str) -> str:
     safe_name = re.sub(r"[^a-zA-Z0-9-_]", "_", s)
     safe_name = re.sub(r"_+", "_", safe_name)
@@ -161,7 +155,6 @@ def main():
 
     paths = get_paths(general_config, path_flag, input_args)
     combined_weights = general_config.get("combined_weights", {})
-    comments_weights = general_config.get("weights", {})
 
     # LLM CONFIG LOAD
     llm_config_path = paths.get("llm_config")
@@ -169,9 +162,10 @@ def main():
         raise FileNotFoundError("llm_config path missing in config.toml")
     with open(llm_config_path, "rb") as f:
         llm_config = tomllib.load(f)
-    topics, analysis = llm_config["topics"], llm_config["analysis"]
+    topics = llm_config["topics"]
     llm_weights = {a["name"]: a["weight"] for a in topics}
     pricing = llm_config.get("models", {})
+    comments_weights = llm_config.get("weights", {})
 
     # QUESTIONS CONFIG LOAD
     questions_config_path = paths.get("questions_config")
@@ -193,7 +187,7 @@ def main():
     schema = generate_schema(topic_list)
 
     # PROMPTS CONSTRUCTION
-    args_md = build_prompt_context(topics, analysis)
+    args_md = build_prompt_context(topics, paths.get("topics_path"))
     sys_prompt_path = paths.get("sys_prompt")
     usr_prompt_path = paths.get("usr_prompt")
     if not sys_prompt_path or not Path(sys_prompt_path).exists():
@@ -204,10 +198,19 @@ def main():
     system_prompt_name = Path(sys_prompt_path).stem
     user_prompt_name = Path(usr_prompt_path).stem
 
+    provider_name = input_args.provider
+    model = input_args.model
+    temperature = input_args.temperature
+    provider = get_provider(provider_name)
+
     for program_path in program_paths:
         program_name = Path(program_path).name
         abs_program_path = "file://" + str(Path(program_path).resolve())
-        program_info = {"name": program_name, "path": abs_program_path}
+        program_info = {
+            "name": program_name,
+            "path": abs_program_path,
+            "to_visual_path": str(program_path),
+        }
         program_text = add_line_numbers(load_file(program_path))
 
         # OBJECTIVE TESTS
@@ -236,6 +239,7 @@ def main():
             str(sys_prompt_path), str(usr_prompt_path), templ_context
         )
 
+        # Debug saving of system and user prompts used
         if debug:
             with open(
                 PROJECT_ROOT / "rendered_prompts" / "system_prompt.md",
@@ -250,52 +254,53 @@ def main():
             ) as f:
                 f.write(user_prompt)
 
-        # TEMPERATURE
-        temperature = input_args.temperature
-
-        # MODEL CALL
-        model = input_args.model
-        provider = input_args.provider
-
-        MAX_RETRIES = 2
+        # API CALL
+        max_retries = 2
         skip_prog = False
-        for attempt in range(MAX_RETRIES + 1):
+        for attempt in range(max_retries + 1):
             try:
-                parsed, usage, provider = run_model_dispatch(
-                    provider,
-                    model,
-                    system_prompt,
-                    user_prompt,
-                    schema,
-                    input_args.prompt_price,
-                    input_args.completion_price,
-                    temperature,
-                    debug,
+                out_text, out_usage = provider.run(
+                    system_prompt, user_prompt, schema, model, temperature
                 )
+                if debug:
+                    save_debug_pair(out_text, out_usage.model_dump(), "debugs")
+                parsed = json.loads(out_text)
+                usage = out_usage.model_dump() if out_usage else {}
+                # no exception -> no retry needed
+                break
+            except CacheAPIError as e:
+                logger.error(f"[CACHE] {e}")
+                skip_prog = True
             except TransientAPIError as e:
-                if attempt == MAX_RETRIES:
-                    logger.error(f"Transient error after retries: {e}")
+                if attempt == max_retries:
+                    logger.error(f"[TRANSIENT] Retry logic didn't work: {e}")
                     skip_prog = True
                 else:
                     print(f"Retrying API call for {program_name}")
                     sleep(2**attempt)
-            except InvalidResponseError as e:
-                logger.error(f"Invalid model output: {e}")
-                skip_prog = True
-                break
             except FatalAPIError as e:
-                logger.error(f"Fatal API error: {e}")
+                logger.error(f"[FATAL] API error: {e}")
                 skip_prog = True
                 break
+            except json.JSONDecodeError as e:
+                save_debug_pair(out_text, out_usage, "failures")
+                logger.error(
+                    f"Invalid JSON in response (see debug files in logs/failures): {e}"
+                )
+                skip_prog = True
 
         if skip_prog:
             print(f"API call for {program_name} FAILED")
             continue  # skip the rest of the external iteration
-        # other instructions are executed if the retry was successful
+        # other instructions are executed if the API call was successful
 
-        tokens = normalize_usage_dispatch(provider, usage)
-
+        tokens = provider.normalize_usage(usage)
         call_cost = compute_cost(model, tokens, pricing)
+
+        # CONSECUTIVE LINES CONTROL
+        for topic in parsed["evaluations"]:
+            for comment in topic["evidences"]:
+                comment["lines"] = cons_lines_to_list(comment["lines"])
 
         # DETERMINISTIC SCORE GENERATION FROM EVIDENCES
         generate_topic_score(parsed["evaluations"], comments_weights)
@@ -316,7 +321,7 @@ def main():
         timestamp = datetime.now().strftime("%H-%M-%S")
         output_dir = (
             Path(paths.get("output"))
-            / make_safe_dirname(input_args.model)
+            / make_safe_dirname(model)
             / (input_args.output_directory or "")
         )
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -329,8 +334,8 @@ def main():
             program_info,
             output_path,
             parsed,
-            input_args.model,
-            provider,
+            model,
+            provider_name,
             tokens,
             call_cost,
             combined,

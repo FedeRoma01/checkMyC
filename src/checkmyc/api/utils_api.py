@@ -1,8 +1,9 @@
+import json
 import logging
 import os
 import sys
-
-from google.genai import types
+from abc import ABC, abstractmethod
+from datetime import datetime
 
 
 class TransientAPIError(Exception):
@@ -13,6 +14,10 @@ class FatalAPIError(Exception):
     pass
 
 
+class CacheAPIError(Exception):
+    pass
+
+
 class InvalidResponseError(TransientAPIError):
     pass
 
@@ -20,53 +25,57 @@ class InvalidResponseError(TransientAPIError):
 logger = logging.getLogger(__name__)
 
 
-def check_api_key(env_var) -> str:
-    key = os.getenv(env_var)
-    if not key:
-        logger.error(f"Missing key {env_var}")
-        sys.exit(1)
-    return key
+class BaseProvider(ABC):
+    def check_api_key(self, env_var) -> str:
+        """Check the presence of the API key used"""
+        key = os.getenv(env_var)
+        if not key:
+            logger.error(f"Missing key {env_var}")
+            sys.exit(1)
+        return key
+
+    @abstractmethod
+    def run(self, sys_prompt, usr_prompt, schema, model, temperature):
+        """Execute specific API call"""
+        pass
+
+    @abstractmethod
+    def normalize_usage(self, usage: dict) -> dict:
+        """Normalize tokens count into a standard format (used in llm.toml)"""
+        pass
 
 
-def json_to_gemini_schema(node: dict) -> types.Schema:
-    """Convert a JSON Schema Draft7-like dict to google.genai.types.Schema."""
-    type_map = {
-        "string": types.Type.STRING,
-        "number": types.Type.NUMBER,
-        "integer": types.Type.INTEGER,
-        "boolean": types.Type.BOOLEAN,
-        "array": types.Type.ARRAY,
-        "object": types.Type.OBJECT,
-    }
+def save_debug_pair(raw_text, context_data, case_folder):
+    """
+    Save the malformed text and a JSON context in a dedicated folder.
+    """
 
-    json_type = node.get("type")
-    gem_type = type_map.get(json_type, types.Type.STRING)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    session_folder = os.path.join("logs", case_folder, f"debug_{timestamp}")
 
-    schema_kwargs = {
-        "type": gem_type,
-        "description": node.get("description"),
-        "nullable": node.get("nullable"),
-        "enum": node.get("enum"),
-        "format": node.get("format"),
-    }
+    if not os.path.exists(session_folder):
+        os.makedirs(session_folder)
 
-    if "pattern" in node:
-        schema_kwargs["pattern"] = node.get("pattern")
-    if "minimum" in node:
-        schema_kwargs["minimum"] = float(node.get("minimum"))
-    if "maximum" in node:
-        schema_kwargs["maximum"] = float(node.get("maximum"))
+    raw_path = os.path.join(session_folder, "llm_output.txt")
+    with open(raw_path, "w", encoding="utf-8") as f:
+        f.write(raw_text)
 
-    if json_type == "array" and "items" in node:
-        schema_kwargs["items"] = json_to_gemini_schema(node["items"])
-        schema_kwargs["min_items"] = node.get("minItems")
-        schema_kwargs["max_items"] = node.get("maxItems")
+    context_path = os.path.join(session_folder, "context_metadata.json")
+    with open(context_path, "w", encoding="utf-8") as f:
+        json.dump(context_data, f, indent=4, ensure_ascii=False, default=str)
 
-    if json_type == "object":
-        properties = node.get("properties", {})
-        schema_kwargs["properties"] = {
-            k: json_to_gemini_schema(v) for k, v in properties.items()
-        }
-        schema_kwargs["required"] = node.get("required", [])
+    print(f"LLM output and metadata saved for debug in: {session_folder}")
 
-    return types.Schema(**schema_kwargs)
+
+def compute_cost(model_name, tokens_count, pricing_data):
+    if model_name not in pricing_data:
+        return " Not specified in llm.toml"
+
+    model_prices = pricing_data[model_name]
+    tot_cost = 0
+    for token_type, count in tokens_count.items():
+        if token_type not in model_prices:
+            continue
+        rate = model_prices[token_type]  # USD per 1M tokens
+        tot_cost += (count / 1000000) * rate
+    return tot_cost
