@@ -1,38 +1,23 @@
 # LLM config file
 
-# USD / 1M tokens
-# Use field names referring to fields returned by the model API call (see official models docs)
-[models."gpt-4.1-mini"]
-cached_tokens = 0.10
-prompt_tokens = 0.40
-completion_tokens = 1.60
+# SCORE GENERATION
+[weights.high]  # CRITICALITY
+plus  = 0       # WEIGHT goodness: "+"
+minus = -2.0    # WEIGHT goodness: "-"
 
-[models."gpt-4.1-nano"]
-cached_tokens = 0.0025
-prompt_tokens = 0.10
-completion_tokens = 0.40
+[weights.medium]
+plus  = 0
+minus = -1.0
 
-[models."deepseek/deepseek-chat-v3-0324"]
-prompt_tokens = 0.25
-completion_tokens = 0.88
-
-[models."tngtech/deepseek-r1t2-chimera:free"]
-prompt_tokens = 0
-completion_tokens = 0
-
-[models."qwen/qwen3-coder"]
-prompt_tokens = 0.25
-completion_tokens = 1
-
-[models."gemini-2.5-flash-lite"]
-prompt_tokens = 0.10
-completion_tokens = 0.40
+[weights.low]
+plus  = 0
+minus = -0.5
 
 # EVALUATED TOPICS
 [[topics]]
-name = "Modularity"
-weight = 1.0
-description = "mod.md"
+name = "Modularity"     # NAME
+weight = 1.0            # LLM - FINAL SCORE WEIGHT
+description = "mod.md"  # PROMPT FILE NAME
 
 [[topics]]
 name = "Correct use of dynamic memory"
@@ -54,11 +39,36 @@ name = "Code generality and quality"
 weight = 1.0
 description = "code_gen.md"
 
-# SUMMARY ANALYSIS
-[[analysis]]
-name = "priority issues"
-description = "Mention the main problems identified in the analysis of the various topics, explaining where they occur and what they consist of."
+# USD / 1M tokens
+# Use field names referring to fields returned by the model API call (see official models docs)
+[models."gpt-4.1-mini"]
+cached_tokens = 0.10
+prompt_tokens = 0.40        # INPUT TOKENS
+completion_tokens = 1.60    # OUTPUT TOKENS
 
-[[analysis]]
-name = "concrete suggestions"
-description = "Based on the highlighted problems, provide concrete suggestions aimed at improving and correcting the program in the areas where such issues occur."
+[models."gpt-4.1-nano"]
+cached_tokens = 0.0025
+prompt_tokens = 0.10
+completion_tokens = 0.40
+
+[models."deepseek/deepseek-chat-v3-0324"]
+prompt_tokens = 0.25
+completion_tokens = 0.88
+
+[models."tngtech/deepseek-r1t2-chimera:free"]
+prompt_tokens = 0
+completion_tokens = 0
+
+[models."qwen/qwen3-coder"]
+prompt_tokens = 0.25
+completion_tokens = 1
+
+[models."gemini-2.5-flash-lite"]
+cached_tokens = 0.01
+prompt_tokens = 0.10
+completion_tokens = 0.40
+
+[models."gemini-2.5-pro"] # (< 200k token)
+cached_tokens = 0.125
+prompt_tokens = 1.25
+completion_tokens = 10

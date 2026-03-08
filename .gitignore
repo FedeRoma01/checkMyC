@@ -11,6 +11,7 @@
 !/resources/sources/dynamic_mem.c
 !/resources/sources/README.md
 
+/logs
 /output/*
 !/output/gpt-4_1-mini
 /output/gpt-4_1-mini/*

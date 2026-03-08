@@ -15,7 +15,7 @@ def add_line_numbers(code: str) -> str:
     for i, line in enumerate(code.splitlines(), start=1):
         lines.append(f"{i:4d} | {line}")
 
-    return "".join(lines)
+    return "\n".join(lines)
 
 
 def get_exec_name() -> str:
@@ -169,9 +169,12 @@ def compute_final_score(
             tests_weights[t] = "Not considered"
 
     # LLM score
-    llm_metrics_spec = {arg["name"]: arg["score"] for arg in llm_metrics["evaluations"]}
+    llm_metrics_spec = {
+        arg["name"]: arg["weighted_score"] for arg in llm_metrics["evaluations"]
+    }
     llm_sum = sum(
-        arg["score"] * llm_weights[arg["name"]] for arg in llm_metrics["evaluations"]
+        arg["weighted_score"] * llm_weights[arg["name"]]
+        for arg in llm_metrics["evaluations"]
     )
     llm_score = llm_sum / sum(llm_weights.values())
 
@@ -192,6 +195,7 @@ def compute_final_score(
         "llm_scores": {**llm_metrics_spec, "final": llm_score},
         "final_score": final_score,
         "weights": {
+            "comments": comments_weights,
             "pvcheck_questions": quest_weights,
             "tests": tests_weights,
             "llm": llm_weights,

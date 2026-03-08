@@ -73,10 +73,9 @@ def generate_schema(topics: list[str]) -> dict:
                 },
                 "description": f"Must contain exactly {n} items, one per topic.",
             },
-            "priority issues": {"type": "array", "items": {"type": "string"}},
             "practical_tips": {"type": "array", "items": {"type": "string"}},
         },
-        "required": ["evaluations", "priority issues", "practical_tips"],
+        "required": ["evaluations", "practical_tips"],
     }
     return base_schema
 
@@ -85,9 +84,19 @@ def save_json_and_html(
     program_info, output_path, parsed, model, provider, tokens, call_cost, combined
 ):
     """Save JSON and HTML report from parsed evaluation data"""
+
+    # Read evaluated program
+    try:
+        with open(program_info["to_visual_path"], encoding="utf-8") as f:
+            source_code_lines = f.readlines()
+    except Exception as e:
+        print(f"Error loading program for visualization: {e}")
+        source_code_lines = [f"Error loading program for visualization: {e}"]
+
     output_data = {
         "program": program_info,
         "LLM": parsed,
+        "source_code_lines": source_code_lines,
         "model": {"name": model, "provider": provider},
         "usage": tokens,
         "call_cost": call_cost,
@@ -108,17 +117,16 @@ def save_json_and_html(
         f.write(html_output)
 
 
-def build_prompt_context(topics, analysis):
+def build_prompt_context(topics, topics_path):
     """Combine topics and scripts markdowns into a single string"""
     parts = []
     for topic in topics:
-        desc_path = _resolve_path(topic.get("description"), base=DATA_DIR / "topics")
+        desc_path = _resolve_path(topic.get("description"), base=topics_path)
         if desc_path and Path(desc_path).exists():
             parts.append(load_file(desc_path))
         else:
             parts.append(topic.get("description", ""))
-    for a in analysis:
-        parts.append(f"### {a['name']}\n{a['description']}")
+
     return "\n".join(parts)
 
 
@@ -229,6 +237,7 @@ def get_paths(config: dict, config_flag: bool, args: Namespace) -> dict:
         "llm_config": r(base.get("llm")),
         "questions_config": r(base.get("questions")),
         "output": r(Path(base.get("output_path")) / (args.output or "")),
+        "topics_path": r(base.get("topic_prompts_path")),
     }
     if config_flag:
         paths.update(
@@ -290,3 +299,37 @@ def programs_loading(paths, extension):
         raise TypeError(f"Wrong program file extension: {p}")
 
     return program_paths
+
+
+def cons_lines_to_list(lines_list):
+    """Turns consecutive single lines elements into a single lines-interval element"""
+    if not lines_list:
+        return []
+
+    extracted_numbers = set()
+    for item in lines_list:
+        if "-" in item:
+            start, end = map(int, item.split("-"))
+            extracted_numbers.update(range(start, end + 1))
+        else:
+            extracted_numbers.add(int(item))
+
+    sorted_numbers = sorted(extracted_numbers)
+
+    if not sorted_numbers:
+        return lines_list
+
+    normalized = []
+    start = sorted_numbers[0]
+    for i in range(1, len(sorted_numbers) + 1):
+        if i == len(sorted_numbers) or sorted_numbers[i] != sorted_numbers[i - 1] + 1:
+            end = sorted_numbers[i - 1]
+            if start == end:
+                normalized.append(str(start))
+            else:
+                normalized.append(f"{start}-{end}")
+
+            if i < len(sorted_numbers):
+                start = sorted_numbers[i]
+
+    return normalized

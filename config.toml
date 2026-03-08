@@ -12,18 +12,7 @@ exam_text_path = "resources"
 sys_prompt_path = "src/checkmyc/data/prompts/system"
 usr_prompt_path = "src/checkmyc/data/prompts/user"
 
-# SCORE GENERATION
-[weights.high]
-plus  = 0   # Valore per goodness: "+"
-minus = -2.0  # Valore per goodness: "-"
-
-[weights.medium]
-plus  = 0
-minus = -1.0
-
-[weights.low]
-plus  = 0
-minus = -0.5
+topic_prompts_path = "src/checkmyc/data/prompts/topics"
 
 # COMBINED RESULT
 [combined_weights]

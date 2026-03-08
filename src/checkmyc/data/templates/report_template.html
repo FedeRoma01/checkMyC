@@ -61,6 +61,7 @@
 
         td {
             background-color: #1f1f1f;
+            position: relative;
         }
 
         .inner table,
@@ -130,19 +131,94 @@
             height: 22px;
             border-radius: 50%;
             font-weight: bold;
-            font-size: 0.9em;
+            font-size: 1em; /* Leggermente più grande per una migliore leggibilità */
             color: #ffffff;
             margin-right: 5px;
+
+            /* RESET FONDAMENTALI */
+            line-height: 1;      /* Annulla l'1.55 del body */
+            text-indent: 0;      /* Assicura che non ci siano rientri */
+            padding-bottom: 2px; /* Tweak ottico: i simboli + e - spesso appaiono "bassi" */
         }
 
-        .sign-minus { background-color: #ff4d4d; } /* Rosso */
-        .sign-equal { background-color: #808080; } /* Grigio */
-        .sign-plus  { background-color: #2ecc71; } /* Verde */
+        .sign-minus { background-color: #ff4d4d; } /* Red */
+        .sign-equal { background-color: #808080; } /* Gray */
+        .sign-plus  { background-color: #2ecc71; } /* Green */
 
-        /* Per allineare il testo nella cella */
         .cell-center {
             text-align: center;
             vertical-align: middle;
+        }
+
+        /* Container del numero di riga */
+        .line-trigger {
+            display: inline-block;
+            cursor: pointer; /* Cambiato da help a pointer per indicare il click */
+            border-bottom: 1px dotted #2ecc71;
+            color: #2ecc71;
+            font-weight: bold;
+            transition: color 0.2s, background-color 0.2s;
+        }
+
+        /* Stile quando la riga è attiva (cliccata) */
+        .line-trigger.active {
+            color: #1c1c1c;
+            background-color: #2ecc71;
+            border-bottom: 1px solid transparent;
+        }
+
+        .code-tooltip {
+            visibility: hidden;
+            position: absolute;
+            z-index: 100;
+            top: 95%;
+            right: 0;
+
+            margin-top: 0;
+            padding-top: 0;
+
+            background-color: #1e1e1e; /* Leggermente più scuro per contrasto */
+            color: #d1d1d1;
+            border: 2px solid white;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+
+            box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+
+            width: max-content;
+            max-width: 70vw;
+
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+
+            white-space: pre-wrap;
+            word-break: break-all;
+            text-align: left;
+
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: auto; /* Permette interazione col box */
+        }
+
+        .code-tooltip pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        /* Mostra il tooltip quando il genitore ha la classe .active */
+        .line-trigger.active .code-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        h3 {
+            font-size: 1.05em;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+            color: #aaaaaa; /* Grigio chiaro per non distrarre dagli h2 */
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
     </style>
@@ -199,7 +275,27 @@
                     {% endif %}
                 </td>
                 <td class="cell-center">{{ evidence.criticality }}</td>
-                <td>{{ evidence.lines }}</td>
+                <td>
+                    {% for line_spec in evidence.lines %}
+                        <div class="line-trigger">
+                            {{ line_spec }}
+                            <div class="code-tooltip"><pre style="margin: 0;">{%- set parts = line_spec.split('-') -%}
+                            {%- if parts|length == 2 -%}
+                                {%- set start = parts[0]|int -%}
+                                {%- set end = parts[1]|int -%}
+                                {%- for i in range(start, end + 1) -%}
+                                    {%- if data.source_code_lines[i-1] is defined -%}
+                            <span style="color:#666; user-select: none;">{{ "%3d"|format(i) }}</span>  {{ data.source_code_lines[i-1]|e }}{%- endif -%}
+                                {%- endfor -%}
+                            {%- else -%}
+                                {%- set i = line_spec|int -%}
+                                {%- if data.source_code_lines[i-1] is defined -%}
+                            <span style="color:#666; user-select: none;">{{ "%3d"|format(i) }}</span>  {{ data.source_code_lines[i-1]|e }}{%- endif -%}
+                            {%- endif -%}</pre></div>
+                        </div>
+                        {% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                </td>
             </tr>
             {% endfor %}
         {% endfor %}
@@ -208,48 +304,128 @@
 
 <hr>
 
-<div class="two-columns">
-    <div>
-        <h2>Priority Issues</h2>
-        <ul>
-            {% for issue in data.LLM["priority issues"] %}
-            <li>{{ issue }}</li>
-            {% endfor %}
-        </ul>
-    </div>
-
-    <div class="vertical-separator"></div>
-
-    <div>
-        <h2>Practical Tips</h2>
-        <ul>
-            {% for tip in data.LLM.practical_tips %}
-            <li>{{ tip }}</li>
-            {% endfor %}
-        </ul>
-    </div>
+<div>
+    <h2>Practical Tips (only for highest negative evidences)</h2>
+    <ul>
+        {% for tip in data.LLM.practical_tips %}
+        <li>{{ tip }}</li>
+        {% endfor %}
+    </ul>
 </div>
 
 <hr>
 
 <div class="two-columns">
     <div>
-        <h2>Tests Results</h2>
-        <table class="compact">
-            <tr><th>Test</th><th>Score</th></tr>
-            {% for k, v in data.tests_scores.items() %}
+        <h2>LLM Scoring Logic</h2>
+        
+        <h3>LLM Final Score - Topic Weights</h3>
+        <table class="full" style="margin-bottom: 1.5em;">
+            <tr><th>Criteria</th><th>Weight</th></tr>
+            {% for k, v in data.weights.llm.items() %}
             <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
             {% endfor %}
+        </table>
+
+        <h3>LLM Topic Score - Comment Weight</h3>
+        <table class="full">
+            <thead>
+                <tr>
+                    <th>Criticality</th>
+                    <th>Negative (-)</th>
+                    <th>Positive (+)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for level, impacts in data.weights.comments.items() %}
+                <tr>
+                    <td>{{ level | capitalize }}</td>
+                    <td style="color: #ff4d4d; font-weight: bold;">{{ impacts.minus }}</td>
+                    <td style="color: #2ecc71; font-weight: bold;">+{{ impacts.plus }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
 
     <div class="vertical-separator"></div>
 
-    <div>
-        <h2>Weights</h2>
-        <pre>{{ data.weights | tojson(indent=2) }}</pre>
+    <div style="padding-bottom: 50px">
+        <h2>Final Score - Split</h2>
+        
+        <h3>Final Score Split</h3>
+        <table class="full" style="margin-bottom: 1.5em;">
+            <tr><th>Component</th><th>Weight</th><th>Score</th></tr>
+            <tr><td>LLM Evaluation (Qualitative)</td><td>{{ data.weights.final.llm }}</td><td>{{ data.llm_scores.final }}</td></tr>
+            <tr><td>Functional Tests (Quantitative)</td><td>{{ data.weights.final.tests }}</td><td>{{ data.tests_scores.final }}</td></tr>
+        </table>
+
+        <h2>Test Results & Weights</h2>
+
+        <h3>Functional Tests - Details</h3>
+        <table class="full">
+            <thead>
+                <tr>
+                    <th>Test Type</th>
+                    <th>Weight</th>
+                    <th>Achieved Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for k, v in data.tests_scores.items() %}
+                    {% if k != "final" %}
+                    <tr>
+                        <td>{{ k | capitalize }}</td>
+                        <td>{{ data.weights.tests[k] }}</td>
+                        <td style="font-weight: bold;">{{ v }}</td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if data.weights.pvcheck_questions %}
+        <h3>PVCheck SCORE - Questions Weight</h3>
+        <p style="font-size: 0.85em; color: #aaaaaa; margin-bottom: 0.5em;">Individual weights for unit test suite:</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+            {% for q, w in data.weights.pvcheck_questions.items() %}
+            <span style="background: #2a2a2a; border: 1px solid #444; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">
+                Q{{ q }}: <strong>{{ w }}</strong>
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 </div>
+
+<script>
+    document.addEventListener('click', function(event) {
+        const triggers = document.querySelectorAll('.line-trigger');
+        let clickedInsideTrigger = null;
+
+        // Controllo se il click è avvenuto su un trigger o dentro un tooltip
+        triggers.forEach(trigger => {
+            if (trigger.contains(event.target)) {
+                clickedInsideTrigger = trigger;
+            }
+        });
+
+        if (clickedInsideTrigger) {
+            // Se ho cliccato su un trigger
+            // 1. Se era già attivo, lo chiudo
+            if (clickedInsideTrigger.classList.contains('active')) {
+                clickedInsideTrigger.classList.remove('active');
+            } else {
+                // 2. Chiudo eventuali altri aperti e attivo questo
+                triggers.forEach(t => t.classList.remove('active'));
+                clickedInsideTrigger.classList.add('active');
+            }
+        } else {
+            // Se ho cliccato fuori da qualsiasi trigger/tooltip, chiudo tutto
+            triggers.forEach(t => t.classList.remove('active'));
+        }
+    });
+</script>
 
 </body>
 </html>

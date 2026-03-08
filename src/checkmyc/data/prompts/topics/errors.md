@@ -10,14 +10,14 @@ Evaluate the correctness and completeness of runtime error checks and the progra
 1. All relevant runtime errors are detected and handled locally (goodness: +, criticality: high).
 2. All error handlings let the program always terminates in a controlled manner (goodness: +, criticality: high).
 3. There are unreachable error checks (goodness: -, criticality: low).
-4. There are ineffective error checks (goodness: -, criticality: high). [*?]
-5. Error handling contains explanatory prints (goodness: +, criticality: low). [*?]
+4. There are ineffective error checks (goodness: -, criticality: high)..
+5. Error handling contains explanatory prints (goodness: +, criticality: low)..
 6. The reading file function returns NULL pointer to the caller due to not checking and handling allocation failures (goodness: -, criticality: low).
 7. The number of command-line arguments is not checked (goodness: -, criticality: medium).
 8. Command-line arguments number is checked and handled by terminating the program (goodness: +, criticality: medium).
 9. File opening failure is not checked (goodness: -, criticality: medium).
 10. File opening failure is checked and handled by terminating the program (goodness: +, criticality: medium).
-11. Empty file case is not handled or it is not handled (goodness: =, criticality: neutral).
+11. Empty file case is not handled (goodness: =, criticality: neutral).
 12. Empty file case is handled (goodness: =, criticality: neutral).
 13. Dynamic memory allocations are checked for failure and correctly handled by terminating the program (goodness: +, criticality: high).
 14. Dynamic memory allocations are not checked for failure, risking unsafe use (goodness: -, criticality: medium).
