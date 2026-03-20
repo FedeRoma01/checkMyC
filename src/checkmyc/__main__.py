@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import re
+import shutil
 import sys
 import tomllib
 from collections import defaultdict
@@ -24,6 +25,7 @@ from .code.config import (
     get_paths,
     load_exam_context,
     load_file,
+    parse_topic_rules,
     programs_loading,
     render_prompts,
     save_json_and_html,
@@ -114,7 +116,7 @@ def init_argparser() -> argparse.ArgumentParser:
 
 
 def make_safe_dirname(s: str) -> str:
-    safe_name = re.sub(r"[^a-zA-Z0-9-_]", "_", s)
+    safe_name = re.sub(r"[^a-zA-Z0-9\-_\.]", "_", s)
     safe_name = re.sub(r"_+", "_", safe_name)
     safe_name = safe_name.strip("_")
     return safe_name
@@ -151,7 +153,7 @@ def main():
     topics = llm_config["topics"]
     llm_weights = {a["name"]: a["weight"] for a in topics}
     pricing = llm_config.get("models", {})
-    comments_weights = llm_config.get("weights", {})
+    comment_weights = {t["name"]: t.get("weights", {}) for t in topics}
 
     # QUESTIONS CONFIG LOAD
     questions_config_path = paths.get("questions_config")
@@ -165,6 +167,10 @@ def main():
     # PROGRAM LOAD (prepare list of program file Paths)
     program_paths = programs_loading(paths, ".c")
 
+    cache_flag = True
+    if len(program_paths) == 1:
+        cache_flag = False
+
     # EXAM/CONTEXT & SOLUTION HANDLING
     exam_dir, context_flag, exam_ctx = load_exam_context(input_args, paths, questions)
 
@@ -173,11 +179,22 @@ def main():
     schema = generate_schema(topic_list)
 
     # PROMPTS CONSTRUCTION
-    args_md = build_prompt_context(topics, paths.get("topics_path"))
-    type_prompt = "context.md" if (exam_dir or context_flag) else "no_context.md"
+    try:
+        args_md = build_prompt_context(topics, paths.get("topics_path"))
+    except FileNotFoundError as e:
+        raise FileNotFoundError(e) from e
 
-    sys_prompt_path = paths.get("sys_prompt") / type_prompt
-    usr_prompt_path = paths.get("usr_prompt") / type_prompt
+    rules_map = {}
+    for topic in topics:
+        rules_map[topic.get("name")] = parse_topic_rules(
+            paths.get("topics_path") / topic.get("description")
+        )
+
+    sys_type_prompt = "context.md" if (exam_dir or context_flag) else "no_context.md"
+    usr_type_prompt = "context.md" if (exam_dir or context_flag) else "no_context.md"
+
+    sys_prompt_path = paths.get("sys_prompt") / sys_type_prompt
+    usr_prompt_path = paths.get("usr_prompt") / usr_type_prompt
     if not sys_prompt_path or not Path(sys_prompt_path).exists():
         raise FileNotFoundError(f"System prompt not found: {sys_prompt_path}")
     if not usr_prompt_path or not Path(usr_prompt_path).exists():
@@ -186,7 +203,21 @@ def main():
     provider_name = input_args.provider
     model = input_args.model
     temperature = input_args.temperature
-    provider = get_provider(provider_name)
+    param = {
+        "prompt_price": input_args.prompt_price,
+        "completion_price": input_args.completion_price,
+        "cache_flag": cache_flag,
+    }
+    keys = {
+        "openai": "OPENAI_API_KEY",
+        "google": "GOOGLE_API_KEY2",
+        "openrouter": "OPENROUTER_API_KEY2",
+    }
+
+    actual_provider = provider_name if provider_name in keys else "openrouter"
+    env_var = keys.get(actual_provider)
+    provider = get_provider(provider_name, env_var, **param)
+    tot_cost = 0
 
     for program_path in program_paths:
         program_name = Path(program_path).name
@@ -244,7 +275,7 @@ def main():
         skip_prog = False
         for attempt in range(max_retries + 1):
             try:
-                out_text, out_usage = provider.run(
+                out_text, out_usage, provider_name = provider.run(
                     system_prompt, user_prompt, schema, model, temperature
                 )
                 if debug:
@@ -273,14 +304,37 @@ def main():
                     f"Invalid JSON in response (see debug files in logs/failures): {e}"
                 )
                 skip_prog = True
+                break
+            except Exception as e:
+                logger.error(f"[FATAL] : {e}")
+                skip_prog = True
+                break
 
         if skip_prog:
             print(f"API call for {program_name} FAILED")
+            try:
+                redo_dir = (
+                    Path(paths.get("programs")).parent / "to_redo"
+                    if Path(paths.get("programs")).is_file()
+                    else Path(paths.get("programs")) / "to_redo"
+                )
+
+                redo_dir.mkdir(parents=True, exist_ok=True)
+
+                shutil.copy2(program_path, redo_dir / program_name)
+                print(f"Program copied to: {redo_dir}")
+            except Exception as e:
+                logger.error(f"Failed to copy {program_name} to to_redo: {e}")
             continue  # skip the rest of the external iteration
         # other instructions are executed if the API call was successful
 
         tokens = provider.normalize_usage(usage)
         call_cost = compute_cost(model, tokens, pricing)
+        try:
+            current_call_cost = float(call_cost)
+            tot_cost += current_call_cost
+        except (ValueError, TypeError):
+            logger.error(f"Unable to convert the cost: {call_cost}")
 
         # CONSECUTIVE LINES CONTROL
         for topic in parsed["evaluations"]:
@@ -288,13 +342,13 @@ def main():
                 comment["lines"] = cons_lines_to_list(comment["lines"])
 
         # DETERMINISTIC SCORE GENERATION FROM EVIDENCES
-        generate_topic_score(parsed["evaluations"], comments_weights)
+        generate_topic_score(parsed["evaluations"], rules_map, comment_weights)
 
         # FINAL SCORE
         combined = compute_final_score(
             metrics,
             parsed,
-            comments_weights,
+            comment_weights,
             tests_weights,
             llm_weights,
             combined_weights,
@@ -310,19 +364,29 @@ def main():
             / (input_args.output_directory or "")
         )
         output_dir.mkdir(parents=True, exist_ok=True)
-        output_name = f"{timestamp}_{program_name}_{type_prompt}.json"
+        output_name = f"{timestamp}_{program_name}_{sys_type_prompt}.json"
         output_path = output_dir / output_name
 
         save_json_and_html(
             program_info,
             output_path,
             parsed,
+            rules_map,
             model,
             provider_name,
             tokens,
             call_cost,
             combined,
         )
+
+    if input_args.provider == "google" and cache_flag:
+        cached_tokens = tokens.get("cached_tokens", 0)
+        caches = llm_config.get("caches", {})
+        gem = caches["gemini"]["cache_archivied_tokens"]
+        cache_cost = gem / 1000000 * cached_tokens
+        print(f"Cache creation cost: ${cache_cost}")
+
+    print(f"Execution COST: ${tot_cost:.4f}")
 
 
 if __name__ == "__main__":

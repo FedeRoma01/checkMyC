@@ -11,6 +11,7 @@ from pathlib import Path
 
 def add_line_numbers(code: str) -> str:
     """Add line numbers for relative comments in the output."""
+    code = code.expandtabs(4)
     lines = []
     for i, line in enumerate(code.splitlines(), start=1):
         lines.append(f"{i:4d} | {line}")
@@ -31,7 +32,7 @@ def compilation_test(file_path: str) -> float:
 
     compile_cmd = ["gcc", "-Wall", "-Wextra", file_path]
     try:
-        result = subprocess.run(compile_cmd, capture_output=True, text=True, timeout=10)
+        result = subprocess.run(compile_cmd, capture_output=True, text=True, timeout=5)
         if result.returncode != 0:
             logging.info("Compilation error")
             return 0
@@ -120,22 +121,49 @@ def pvcheck_test(
 
 
 def generate_topic_score(
-    topic_evals, comments_weights, start_score=10, min_score=0, max_score=11
+    topic_evals,
+    rules_map,
+    topic_comments_weights,
+    start_score=10,
+    min_score=0,
+    max_score=10,
 ):
-    """Computes the grade based on the frequency of evidence."""
+    """Enriches evidence with goodness/criticality from the rules_map
+    and calculates the weighted score."""
     mapping = {"+": "plus", "-": "minus"}
 
     for topic in topic_evals:
-        counts = Counter(
-            (ev["goodness"], ev["criticality"]) for ev in topic["evidences"]
-        )
-        adjustment = 0
+        t_name = topic.get("topic_name")
+        topic_rules = rules_map.get(t_name, {})
+        current_weights = topic_comments_weights.get(t_name, {})
 
+        for ev in topic["evidences"]:
+            try:
+                c_id = int(ev["condition_id"])
+                rule_info = topic_rules.get(c_id, {})
+            except (ValueError, TypeError):
+                rule_info = {}
+
+            ev["goodness"] = rule_info.get("goodness", "=")
+            ev["criticality"] = rule_info.get("criticality", "neutral")
+
+        seen_ids = set()
+        unique_metadata = []
+
+        for ev in topic["evidences"]:
+            c_id = ev["condition_id"]
+            if c_id not in seen_ids:
+                unique_metadata.append((ev["goodness"], ev["criticality"]))
+                seen_ids.add(c_id)
+
+        counts = Counter(unique_metadata)
+
+        adjustment = 0
         for (good, crit), freq in counts.items():
             if good == "=" or crit == "neutral":
                 continue
             good_key = mapping.get(good)
-            weight = comments_weights[crit][good_key]
+            weight = current_weights[crit][good_key]
             adjustment += weight * freq
 
         weighted_score = start_score + adjustment
@@ -155,49 +183,62 @@ def compute_final_score(
     pvcheck_csv_scores: dict,
 ) -> dict:
     """Compute combined final score from objective and LLM metrics."""
-    valid_tests = {t: v for t, v in objective_metrics.items() if v != -1.0}
-    if valid_tests:
-        weighted_sum = sum(tests_weights[t] * v for t, v in valid_tests.items())
-        total_weight = sum(tests_weights[t] for t in valid_tests)
-        tests_score = weighted_sum / total_weight
-    else:
-        tests_score = 0  # no tests executed
+    valid_test_keys = [t for t, v in objective_metrics.items() if v != -1.0]
 
-    for t, v in objective_metrics.items():
-        if v == -1:
-            objective_metrics[t] = "Not executed"
-            tests_weights[t] = "Not considered"
+    if valid_test_keys:
+        weighted_sum = sum(
+            float(tests_weights[t]) * float(objective_metrics[t])
+            for t in valid_test_keys
+        )
+        total_weight = sum(float(tests_weights[t]) for t in valid_test_keys)
+        tests_score = weighted_sum / total_weight if total_weight > 0 else 0
+    else:
+        tests_score = 0
+
+    report_metrics = objective_metrics.copy()
+    report_weights = tests_weights.copy()
+
+    for t in objective_metrics:
+        if objective_metrics[t] == -1:
+            report_metrics[t] = "Not executed"
+            report_weights[t] = "Not considered"
 
     # LLM score
     llm_metrics_spec = {
-        arg["name"]: arg["weighted_score"] for arg in llm_metrics["evaluations"]
+        arg["topic_name"]: arg["weighted_score"] for arg in llm_metrics["evaluations"]
     }
+
+    total_llm_weight = sum(llm_weights.values())
     llm_sum = sum(
-        arg["weighted_score"] * llm_weights[arg["name"]]
+        arg["weighted_score"] * llm_weights[arg["topic_name"]]
         for arg in llm_metrics["evaluations"]
     )
-    llm_score = llm_sum / sum(llm_weights.values())
+    llm_score = llm_sum / total_llm_weight if total_llm_weight > 0 else 0
 
     # Final score
     total_combined_weights = sum(combined_weights.values())
-    final_score = (
-        combined_weights["tests"] * tests_score + combined_weights["llm"] * llm_score
-    ) / total_combined_weights
+    if total_combined_weights > 0:
+        final_score = (
+            combined_weights["tests"] * tests_score
+            + combined_weights["llm"] * llm_score
+        ) / total_combined_weights
+    else:
+        final_score = 0
 
     pv_data = {
-        k: [(float(x) if x != "MISS" else 0) for x in v]
+        k: [(float(x) if (x != "MISS" and x is not None) else 0) for x in v]
         for k, v in list(pvcheck_csv_scores.items())[2:]
     }
 
     return {
         "pvcheck": pv_data,
-        "tests_scores": {**objective_metrics, "final": tests_score},
+        "tests_scores": {**report_metrics, "final": tests_score},
         "llm_scores": {**llm_metrics_spec, "final": llm_score},
         "final_score": final_score,
         "weights": {
             "comments": comments_weights,
             "pvcheck_questions": quest_weights,
-            "tests": tests_weights,
+            "tests": report_weights,
             "llm": llm_weights,
             "final": combined_weights,
         },

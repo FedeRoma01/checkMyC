@@ -5,7 +5,7 @@
 questions = "src/checkmyc/config/questions.toml"
 llm = "src/checkmyc/config/llm.toml"
 # -cf to enable the following paths
-output_path = "output"
+output_path = "fw_output"
 schema_path = "src/checkmyc/data/json_schema"
 programs_path = "resources/sources"
 exam_text_path = "resources"

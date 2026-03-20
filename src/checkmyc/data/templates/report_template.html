@@ -154,8 +154,8 @@
         .line-trigger {
             display: inline-block;
             cursor: pointer; /* Cambiato da help a pointer per indicare il click */
-            border-bottom: 1px dotted #2ecc71;
-            color: #2ecc71;
+            border-bottom: 1px dotted #4c82e6;
+            color: #4c82e6;
             font-weight: bold;
             transition: color 0.2s, background-color 0.2s;
         }
@@ -163,7 +163,7 @@
         /* Stile quando la riga è attiva (cliccata) */
         .line-trigger.active {
             color: #1c1c1c;
-            background-color: #2ecc71;
+            background-color: #4c82e6;
             border-bottom: 1px solid transparent;
         }
 
@@ -212,6 +212,32 @@
             opacity: 1;
         }
 
+        .match-true { color: #2ecc71; font-weight: bold; }
+        .match-false { color: #ff4d4d; font-weight: bold; }
+
+        .condition-tooltip {
+            visibility: hidden;
+            position: absolute;
+            z-index: 101;
+            top: 100%;
+            left: 0;
+            background-color: #2a2a2a;
+            color: #e8e8e8;
+            border: 1px solid #aaaaaa;
+            padding: 10px;
+            width: 300px;
+            font-size: 0.9em;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            white-space: normal;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .line-trigger.active .condition-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
         h3 {
             font-size: 1.05em;
             margin-top: 1.2em;
@@ -244,7 +270,7 @@
         <tr>
             <th>Name</th>
             <th>LLM Score</th>
-            <th>Weighted Score</th>
+            <th>Condition</th>
             <th>Comments</th>
             <th>Goodness</th>
             <th>Criticality</th>
@@ -257,11 +283,23 @@
             {% for evidence in ev.evidences %}
             <tr>
                 {% if loop.first %}
-                <td rowspan="{{ num_evidences }}">{{ ev.name }}</td>
-                <td rowspan="{{ num_evidences }}">{{ ev.score }}</td>
+                <td rowspan="{{ num_evidences }}">{{ ev.topic_name }}</td>
                 <td rowspan="{{ num_evidences }}">{{ ev.weighted_score }}</td>
                 {% endif %}
 
+                <td class="cell-center" style="white-space: nowrap;">
+                    {% if data.rules_map[ev.topic_name] and data.rules_map[ev.topic_name][evidence.condition_id] %}
+                        <div class="line-trigger">
+                            #{{ evidence.condition_id }}
+                            <div class="condition-tooltip">
+                                <strong>Condition:</strong><br>
+                                {{ data.rules_map[ev.topic_name][evidence.condition_id].condition }}
+                            </div>
+                        </div>
+                    {% else %}
+                        <span>#{{ evidence.condition_id }} (?)</span>
+                    {% endif %}
+                </td>
                 <td>{{ evidence.comment }}</td>
                 <td class="cell-center">
                     {% if evidence.goodness == "-" %}
@@ -270,12 +308,10 @@
                         <span class="status-circle sign-equal">=</span>
                     {% elif evidence.goodness == "+" %}
                         <span class="status-circle sign-plus">+</span>
-                    {% else %}
-                        {{ evidence.goodness }}
                     {% endif %}
                 </td>
                 <td class="cell-center">{{ evidence.criticality }}</td>
-                <td>
+                <td class="cell-center">
                     {% for line_spec in evidence.lines %}
                         <div class="line-trigger">
                             {{ line_spec }}
@@ -327,22 +363,29 @@
             {% endfor %}
         </table>
 
-        <h3>LLM Topic Score - Comment Weight</h3>
+        <h3>LLM Topic Score - Comment Weights</h3>
         <table class="full">
             <thead>
                 <tr>
+                    <th>Topic</th>
                     <th>Criticality</th>
                     <th>Negative (-)</th>
                     <th>Positive (+)</th>
                 </tr>
             </thead>
             <tbody>
-                {% for level, impacts in data.weights.comments.items() %}
-                <tr>
-                    <td>{{ level | capitalize }}</td>
-                    <td style="color: #ff4d4d; font-weight: bold;">{{ impacts.minus }}</td>
-                    <td style="color: #2ecc71; font-weight: bold;">+{{ impacts.plus }}</td>
-                </tr>
+                {% for topic_name, levels in data.weights.comments.items() %}
+                    {% set num_levels = levels|length %}
+                    {% for level, impacts in levels.items() %}
+                    <tr>
+                        {% if loop.first %}
+                        <td rowspan="{{ num_levels }}" style="vertical-align: middle; font-weight: bold; background-color: #252525;">{{ topic_name }}</td>
+                        {% endif %}
+                        <td>{{ level | capitalize }}</td>
+                        <td style="color: #ff4d4d; font-weight: bold;">{{ impacts.minus }}</td>
+                        <td style="color: #2ecc71; font-weight: bold;">+{{ impacts.plus }}</td>
+                    </tr>
+                    {% endfor %}
                 {% endfor %}
             </tbody>
         </table>

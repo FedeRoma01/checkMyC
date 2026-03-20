@@ -5,11 +5,13 @@ description = "Automated evaluation system for programs with LLM support"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "openai",
+    "openai>=1.0.0",
     "jinja2",
     "requests",
     "google",
     "google-genai>=1.48.0",
+    "pandas",
+    "scipy",
 ]
 
 [project.scripts]

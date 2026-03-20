@@ -1,43 +1,76 @@
 # LLM config file
 
-# SCORE GENERATION
-[weights.high]  # CRITICALITY
-plus  = 0       # WEIGHT goodness: "+"
-minus = -2.0    # WEIGHT goodness: "-"
-
-[weights.medium]
-plus  = 0
-minus = -1.0
-
-[weights.low]
-plus  = 0
-minus = -0.5
-
 # EVALUATED TOPICS
 [[topics]]
 name = "Modularity"     # NAME
 weight = 1.0            # LLM - FINAL SCORE WEIGHT
 description = "mod.md"  # PROMPT FILE NAME
+# WEIGHT PER TOPIC
+[topics.weights.high]
+plus = 0
+minus = -10.0
+[topics.weights.medium]
+plus = 0
+minus = -1.0
+[topics.weights.low]
+plus = 0
+minus = -0.3
 
 [[topics]]
 name = "Correct use of dynamic memory"
 weight = 1.0
 description = "mem.md"
+[topics.weights.high]
+plus = 0
+minus = -10.0
+[topics.weights.medium]
+plus = 0
+minus = -1.0
+[topics.weights.low]
+plus = 0
+minus = -0.3
 
 [[topics]]
 name = "Appropriate data structures"
 weight = 1.0
 description = "data.md"
+[topics.weights.high]
+plus = 0
+minus = -10.0
+[topics.weights.medium]
+plus = 0
+minus = -1.0
+[topics.weights.low]
+plus = 0
+minus = -0.3
 
 [[topics]]
 name = "Error handling"
 weight = 1.0
 description = "errors.md"
+[topics.weights.high]
+plus = 0
+minus = -10.0
+[topics.weights.medium]
+plus = 0
+minus = -1.0
+[topics.weights.low]
+plus = 0
+minus = -0.3
 
 [[topics]]
 name = "Code generality and quality"
 weight = 1.0
 description = "code_gen.md"
+[topics.weights.high]
+plus = 0
+minus = -10.0
+[topics.weights.medium]
+plus = 0
+minus = -1.0
+[topics.weights.low]
+plus = 0
+minus = -0.3
 
 # USD / 1M tokens
 # Use field names referring to fields returned by the model API call (see official models docs)
@@ -45,6 +78,11 @@ description = "code_gen.md"
 cached_tokens = 0.10
 prompt_tokens = 0.40        # INPUT TOKENS
 completion_tokens = 1.60    # OUTPUT TOKENS
+
+[models."gpt-4.1"]
+cached_tokens = 0.50
+prompt_tokens = 2.0
+completion_tokens = 8.0
 
 [models."gpt-4.1-nano"]
 cached_tokens = 0.0025
@@ -72,3 +110,11 @@ completion_tokens = 0.40
 cached_tokens = 0.125
 prompt_tokens = 1.25
 completion_tokens = 10
+
+[models."gemini-3.1-pro-preview"] # (< 200k token)
+cached_tokens = 0.2
+prompt_tokens = 2
+completion_tokens = 12
+
+[caches."gemini"] # / 1'000'0000 tokens X 1H
+cache_archivied_tokens = 4.50

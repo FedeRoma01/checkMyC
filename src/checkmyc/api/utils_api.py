@@ -30,7 +30,7 @@ class BaseProvider(ABC):
         """Check the presence of the API key used"""
         key = os.getenv(env_var)
         if not key:
-            logger.error(f"Missing key {env_var}")
+            logger.error(f"Missing key: {env_var}")
             sys.exit(1)
         return key
 
@@ -58,7 +58,7 @@ def save_debug_pair(raw_text, context_data, case_folder):
 
     raw_path = os.path.join(session_folder, "llm_output.txt")
     with open(raw_path, "w", encoding="utf-8") as f:
-        f.write(raw_text)
+        f.write(str(raw_text))
 
     context_path = os.path.join(session_folder, "context_metadata.json")
     with open(context_path, "w", encoding="utf-8") as f:

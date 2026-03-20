@@ -22,16 +22,22 @@
 /aggregator
 /errors
 /analysis
+/gold
+/recompute_score.py
+/togold.py
+/weights_cal.py
 !/src/checkmyc/data/templates/extract_template.html
 
 src/checkmyc/data/json_schema
 src/checkmyc/data/templates/extract_template.html
 src/checkmyc/data/prompts/system/sys_comm_extr.md
 src/checkmyc/data/prompts/user/usr_comm_extr.md
-src/checkmyc/data/prompts/user/up*
-src/checkmyc/data/prompts/system/sp*
-#src/checkmyc/data/json_schema/comments_schema.json
-#src/checkmyc/code/aggregator.py
+src/checkmyc/data/prompts/system/*
+src/checkmyc/data/prompts/user/*
+!src/checkmyc/data/prompts/system/context.md
+!src/checkmyc/data/prompts/system/no_context.md
+!src/checkmyc/data/prompts/user/context.md
+!src/checkmyc/data/prompts/user/no_context.md
 
 prova_ollama.json
 .pre-commit-config.yaml

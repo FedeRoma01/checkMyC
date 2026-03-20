@@ -10,9 +10,10 @@ from ..api.utils_api import (
 
 
 class OpenAIProvider(BaseProvider):
-    def __init__(self):
-        key = self.check_api_key("OPENAI_API_KEY")
-        self.client = OpenAI(api_key=key, max_retries=0, timeout=120.0)
+    def __init__(self, provider, key, **kwargs):
+        self.key = self.check_api_key(key)
+        self.client = OpenAI(api_key=self.key, max_retries=0, timeout=30.0)
+        self.provider = provider
 
     def run(self, sys_prompt, usr_prompt, schema, model, temperature):
         try:
@@ -31,24 +32,27 @@ class OpenAIProvider(BaseProvider):
                     }
                 },
                 temperature=temperature,
-                prompt_cache_retention="in-memory",  # "in-memory"
+                prompt_cache_retention="in_memory",
                 prompt_cache_key="checkmyc",
             )
-            return response.output[0].content[0].text, response.usage
+            return response.output[0].content[0].text, response.usage, self.provider
         except (
             openai.RateLimitError,
             openai.APITimeoutError,
             openai.APIConnectionError,
             openai.InternalServerError,
         ) as e:
-            raise TransientAPIError(f"API Error: {e}") from e
+            raise TransientAPIError(e) from e
         except (openai.APIError, openai.AuthenticationError, InvalidResponseError) as e:
-            raise FatalAPIError(f"API Error: {e}") from e
+            raise FatalAPIError(e) from e
+        except Exception as e:
+            raise Exception(e) from e
 
     def normalize_usage(self, usage: dict) -> dict:
         t_input = usage.get("input_tokens") or 0
         details = usage.get("input_tokens_details") or {}
         cached = details.get("cached_tokens") or 0
+
         return {
             "prompt_tokens": t_input - cached,
             "completion_tokens": usage.get("output_tokens") or 0,

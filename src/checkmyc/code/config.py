@@ -1,4 +1,5 @@
 import json
+import re
 from argparse import Namespace
 from dataclasses import dataclass
 from pathlib import Path
@@ -25,13 +26,14 @@ def generate_schema(topics: list[str]) -> dict:
                     "type": "object",
                     "additionalProperties": False,
                     "properties": {
-                        "name": {"type": "string", "enum": topics},
+                        "topic_name": {"type": "string", "enum": topics},
                         "evidences": {
                             "type": "array",
                             "items": {
                                 "type": "object",
                                 "additionalProperties": False,
                                 "properties": {
+                                    "condition_id": {"type": "integer"},
                                     "comment": {"type": "string"},
                                     "lines": {
                                         "type": "array",
@@ -39,49 +41,31 @@ def generate_schema(topics: list[str]) -> dict:
                                             "type": "string",
                                             "pattern": "^\\d+(-\\d+)?$",
                                         },
-                                        "default": [],
-                                    },
-                                    "criticality": {
-                                        "type": "string",
-                                        "enum": ["high", "medium", "low", "neutral"],
-                                    },
-                                    "goodness": {
-                                        "type": "string",
-                                        "enum": ["+", "-", "="],
                                     },
                                 },
-                                "required": [
-                                    "comment",
-                                    "lines",
-                                    "criticality",
-                                    "goodness",
-                                ],
+                                "required": ["condition_id", "comment", "lines"],
                             },
                         },
-                        "score": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 10,
-                            "description": (
-                                "Integer number between 0 and 10. "
-                                "It evaluates the topic satisfaction based exclusively "
-                                "on the specifications provided by the user."
-                            ),
-                        },
                     },
-                    "required": ["name", "evidences", "score"],
+                    "required": ["topic_name", "evidences"],
                 },
-                "description": f"Must contain exactly {n} items, one per topic.",
             },
-            "practical_tips": {"type": "array", "items": {"type": "string"}},
         },
-        "required": ["evaluations", "practical_tips"],
+        "required": ["evaluations"],
     }
     return base_schema
 
 
 def save_json_and_html(
-    program_info, output_path, parsed, model, provider, tokens, call_cost, combined
+    program_info,
+    output_path,
+    parsed,
+    rules_map,
+    model,
+    provider,
+    tokens,
+    call_cost,
+    combined,
 ):
     """Save JSON and HTML report from parsed evaluation data"""
 
@@ -96,6 +80,7 @@ def save_json_and_html(
     output_data = {
         "program": program_info,
         "LLM": parsed,
+        "rules_map": rules_map,
         "source_code_lines": source_code_lines,
         "model": {"name": model, "provider": provider},
         "usage": tokens,
@@ -125,9 +110,37 @@ def build_prompt_context(topics, topics_path):
         if desc_path and Path(desc_path).exists():
             parts.append(load_file(desc_path))
         else:
-            parts.append(topic.get("description", ""))
+            raise FileNotFoundError(f"{topic.get('name')} not found.")
 
     return "\n".join(parts)
+
+
+def parse_topic_rules(topic: str):
+    """
+    Extracts rules (goodness and criticality) from a topic markdown file.
+    Returns a map: { condition_id: {'goodness': str, 'criticality': str} }
+    """
+    rules = {}
+    # Regex to detect: Number, Goodness (+/-/=), Criticality (word)
+    # Example match: "5. ... (goodness: -, criticality: high)"
+    pattern = re.compile(
+        r"(\d+)\.\s*(.*?)\s*\(goodness:\s*([+\-=]),\s*criticality:\s*(\w+)\)", re.DOTALL
+    )
+
+    try:
+        with open(topic, encoding="utf-8") as f:
+            content = f.read()
+            matches = pattern.findall(content)
+            for m_id, m_desc, m_good, m_crit in matches:
+                rules[int(m_id)] = {
+                    "condition": m_desc.strip() + f" ({m_good}, {m_crit})",
+                    "goodness": m_good,
+                    "criticality": m_crit,
+                }
+    except Exception as e:
+        print(f"Error parsing rules in {topic}: {e}")
+
+    return rules
 
 
 def render_prompts(sys_prompt_path, usr_prompt_path, context_dict):
